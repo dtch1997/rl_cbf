@@ -26,4 +26,3 @@ class DiverseCartPoleEnv(CartPoleEnv):
     def reset_to(self, state: np.ndarray):
         self.reset()
         self.state = state
-        
