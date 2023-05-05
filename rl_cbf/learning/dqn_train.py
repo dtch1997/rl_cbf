@@ -5,6 +5,7 @@ import random
 import time
 from distutils.util import strtobool
 
+import pandas as pd
 import gym
 import numpy as np
 import torch
@@ -16,7 +17,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 import rl_cbf.envs
 from rl_cbf.learning.env_utils import make_env
-from rl_cbf.learning.dqn_eval import *
+from rl_cbf.learning.dqn_eval import RolloutEvaluator
+from rl_cbf.learning.dqn_cartpole_viz import DQNCartpoleVisualizer
 from rl_cbf.net.q_network import QNetwork
 
 def parse_args():
@@ -74,10 +76,13 @@ def parse_args():
         help="the frequency of training")
     parser.add_argument("--eval-frequency", type=int, default=-1,
         help="the frequency of evaluation")
+    parser.add_argument("--viz-frequency", type=int, default=-1,
+        help="the frequency of visualization")
     
     # CLBF specific arguments
     parser.add_argument("--analytic-loss-coef", type=float, default=0.0)
     parser.add_argument("--unsafe-loss-coef", type=float, default=0.0)
+    parser = QNetwork.add_argparse_args(parser)
     args = parser.parse_args()
     # fmt: on
     return args
@@ -127,10 +132,13 @@ if __name__ == "__main__":
     envs = gym.vector.SyncVectorEnv([make_env(args.env_id, args.seed, 0, args.capture_video, run_name)])
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    q_network = QNetwork(envs, True).to(device)
+    q_network = QNetwork.from_argparse_args(envs, args).to(device)
     optimizer = optim.Adam(q_network.parameters(), lr=args.learning_rate)
-    target_network = QNetwork(envs, True).to(device)
+    target_network = QNetwork.from_argparse_args(envs, args).to(device)
     target_network.load_state_dict(q_network.state_dict())
+
+    evaluator = RolloutEvaluator()
+    visualizer = DQNCartpoleVisualizer()
 
     rb = ReplayBuffer(
         args.buffer_size,
@@ -242,17 +250,16 @@ if __name__ == "__main__":
                     )
             
             if args.eval_frequency > 0 and global_step % args.eval_frequency == 0:
-                # Evaluate model
-                eval_envs = gym.vector.SyncVectorEnv([make_env(args.env_id, args.seed, 0, args.capture_video, run_name, record_obs_act_hist=True)])
-                results: 'pd.Dataframe' = evaluate(q_network, eval_envs, 10, device)
-                writer.add_scalar("charts/eval_episodic_return", results["episode_return"].mean(), global_step)
-                writer.add_scalar("charts/eval_episodic_length", results["episode_length"].mean(), global_step)
+                # TODO: evaluate model
+                metrics: pd.DataFrame = evaluator.evaluate(q_network)
+                writer.add_scalar('eval/episode_length', metrics['episode_length'].mean(), global_step)
+                writer.add_scalar('eval/episode_return', metrics['episode_return'].mean(), global_step)
+                writer.add_scalar('eval/values', metrics['mean_values'].mean(), global_step)
+                writer.add_scalar('eval/td_errors', metrics['mean_td_errors'].mean(), global_step)
 
-                # Save model
-                if args.save_model:
-                    model_path = f"runs/{run_name}/{args.exp_name}_step{global_step}.pth"
-                    base_path = f"runs/{run_name}"
-                    save_model(q_network, model_path, base_path, args)            
+            if args.viz_frequency > 0 and global_step % args.viz_frequency == 0: 
+                fig = visualizer.visualize(q_network)
+                writer.add_figure('viz/barrier_function', fig, global_step)
 
     if args.save_model:
         model_path = f"runs/{run_name}/{args.exp_name}.pth"
