@@ -80,8 +80,7 @@ def parse_args():
         help="the frequency of visualization")
     
     # CLBF specific arguments
-    parser.add_argument("--analytic-loss-coef", type=float, default=0.0)
-    parser.add_argument("--unsafe-loss-coef", type=float, default=0.0)
+    parser.add_argument("--supervised-loss-coef", type=float, default=0.0)
     parser = QNetwork.add_argparse_args(parser)
     args = parser.parse_args()
     # fmt: on
@@ -203,9 +202,9 @@ if __name__ == "__main__":
                 optimal_qval_pred = q_network(safe_states)
                 optimal_val_pred = optimal_qval_pred.max(dim=1)[0]
                 optimal_val_true = 100 * torch.ones(args.batch_size, device=device, dtype=torch.float32)
-                analytic_loss = F.mse_loss(optimal_val_pred, optimal_val_true)
-                writer.add_scalar("losses/analytic_loss", analytic_loss, global_step)
-                loss += args.analytic_loss_coef * analytic_loss
+                safe_loss = F.mse_loss(optimal_val_pred, optimal_val_true)
+                writer.add_scalar("losses/safe_loss", safe_loss, global_step)
+                loss += args.supervised_loss_coef * safe_loss
 
                 # Implement unsafe loss
                 states = np.random.uniform(
@@ -229,7 +228,7 @@ if __name__ == "__main__":
                 unsafe_val_true = 0 * torch.ones(unsafe_val_pred.shape, device=device, dtype=torch.float32)
                 unsafe_loss = F.mse_loss(unsafe_val_pred, unsafe_val_true)
                 writer.add_scalar("losses/unsafe_loss", unsafe_loss, global_step)
-                loss += args.unsafe_loss_coef * unsafe_loss
+                loss += args.supervised_loss_coef * unsafe_loss
 
                 if global_step % 100 == 0:
                     writer.add_scalar("losses/td_loss", loss, global_step)
@@ -251,11 +250,13 @@ if __name__ == "__main__":
             
             if args.eval_frequency > 0 and global_step % args.eval_frequency == 0:
                 # TODO: evaluate model
-                metrics: pd.DataFrame = evaluator.evaluate(q_network)
-                writer.add_scalar('eval/episode_length', metrics['episode_length'].mean(), global_step)
-                writer.add_scalar('eval/episode_return', metrics['episode_return'].mean(), global_step)
-                writer.add_scalar('eval/values', metrics['mean_values'].mean(), global_step)
-                writer.add_scalar('eval/td_errors', metrics['mean_td_errors'].mean(), global_step)
+                eval_strategies = ('rollout', 'grid')
+                for strategy in eval_strategies:
+                    metrics: pd.DataFrame = evaluator.evaluate(q_network, strategy)
+                    writer.add_scalar(f'eval/{strategy}/episode_length', metrics['episode_length'].mean(), global_step)
+                    writer.add_scalar(f'eval/{strategy}/episode_return', metrics['episode_return'].mean(), global_step)
+                    writer.add_scalar(f'eval/{strategy}/values', metrics['mean_values'].mean(), global_step)
+                    writer.add_scalar(f'eval/{strategy}/td_errors', metrics['mean_td_errors'].mean(), global_step)
 
             if args.viz_frequency > 0 and global_step % args.viz_frequency == 0: 
                 fig = visualizer.visualize(q_network)

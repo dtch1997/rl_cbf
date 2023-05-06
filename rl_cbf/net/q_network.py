@@ -41,7 +41,7 @@ class QNetwork(nn.Module):
 
     @staticmethod
     def add_argparse_args(parser: 'argparse.ArgumentParser'):
-        parser.add_argument('--enable-bump-parametrization', type=bool, default=False)
+        parser.add_argument('--enable-bump-parametrization', action='store_true')
         parser.add_argument('--hidden-dim-1', type=int, default=120)
         parser.add_argument('--hidden-dim-2', type=int, default=84)
         parser.add_argument('--device', type=str, default='cuda')

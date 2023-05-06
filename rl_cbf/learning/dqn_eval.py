@@ -29,12 +29,34 @@ class RolloutEvaluator:
             states[i] = self.eval_env.reset()
         return states
     
+    def sample_grid_points(self, n_grid_points: int = 1):
+        """ Sample grid points from the state space """
+        states = np.zeros((n_grid_points, self.eval_env.observation_space.shape[0]))
+        for i in range(n_grid_points):
+            states[i] = self.eval_env.observation_space.sample()
+        return states
+    
     def postprocess(self, df: pd.DataFrame) -> pd.DataFrame:
         df['mean_values'] = df['values'].apply(lambda x: np.mean(x))
         df['mean_td_errors'] = df['td_errors'].apply(lambda x: np.mean(x))
         return df
+    
+    def evaluate(self, model: QNetwork, strategy: str) -> pd.DataFrame:
+        if strategy == 'rollout':
+            return self.evaluate_rollout(model)
+        elif strategy == 'grid':
+            return self.evaluate_grid(model)
+        else:
+            raise ValueError(f'Unknown strategy {strategy}')
 
-    def evaluate(self, model: QNetwork, initial_states: Optional[np.ndarray] = None) -> pd.DataFrame:
+    def evaluate_grid(self, model: QNetwork, n_grid_points: 10000) -> pd.DataFrame:
+        grid_points = self.sample_grid_points(n_grid_points)
+        return self.evaluate_rollout(model, grid_points, max_episode_length=1)
+
+    def evaluate_rollout(self, model: QNetwork, 
+                         initial_states: Optional[np.ndarray] = None, 
+                         max_episode_length: int = 500
+                        ) -> pd.DataFrame:
         """ Return pd.DataFrame of rollout data
         
         Each row is 1 episode 
@@ -55,7 +77,9 @@ class RolloutEvaluator:
             td_errors = []
 
             state = initial_state
-            while not done:
+            t = 0
+            while not done and t < max_episode_length:
+                t += 1
                 states.append(state)
                 action = model.predict_action(state)
                 actions.append(action)
@@ -69,6 +93,7 @@ class RolloutEvaluator:
                 td_error = np.abs(value - reward - 0.99 * next_value)
 
                 td_errors.append(td_error)
+                state = next_state
 
             episode_length = len(states)
             # Convert to np.ndarray
