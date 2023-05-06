@@ -49,7 +49,7 @@ class RolloutEvaluator:
         else:
             raise ValueError(f'Unknown strategy {strategy}')
 
-    def evaluate_grid(self, model: QNetwork, n_grid_points: 10000) -> pd.DataFrame:
+    def evaluate_grid(self, model: QNetwork, n_grid_points: int = 10000) -> pd.DataFrame:
         grid_points = self.sample_grid_points(n_grid_points)
         return self.evaluate_rollout(model, grid_points, max_episode_length=1)
 
