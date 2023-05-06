@@ -11,7 +11,6 @@ from matplotlib.ticker import MaxNLocator
 
 from typing import Callable, List
 from rl_cbf.net.q_network import QNetwork, QNetworkEnsemble
-from rl_cbf.learning.env_utils import make_env
 
 def get_zero_spaces():
     """ Get zero spaces for plotting
@@ -138,7 +137,7 @@ def get_initial_states(n_samples: int = 1):
     low = -high 
     return np.random.uniform(low=low, high=high, size=(n_samples, 4))
 
-class DQNCartpoleVisualizer:
+class DQNCartPoleVisualizer:
 
     def __init__(self):
         self.eval_env = gym.make('DiverseCartPole-v1')

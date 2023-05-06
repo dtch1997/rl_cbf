@@ -17,8 +17,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 import rl_cbf.envs
 from rl_cbf.learning.env_utils import make_env
-from rl_cbf.learning.dqn_eval import RolloutEvaluator
-from rl_cbf.learning.dqn_cartpole_viz import DQNCartpoleVisualizer
+from rl_cbf.learning.dqn_cartpole_eval import DQNCartPoleEvaluator
+from rl_cbf.learning.dqn_cartpole_viz import DQNCartPoleVisualizer
 from rl_cbf.net.q_network import QNetwork
 
 def parse_args():
@@ -136,8 +136,8 @@ if __name__ == "__main__":
     target_network = QNetwork.from_argparse_args(envs, args).to(device)
     target_network.load_state_dict(q_network.state_dict())
 
-    evaluator = RolloutEvaluator()
-    visualizer = DQNCartpoleVisualizer()
+    evaluator = DQNCartPoleEvaluator()
+    visualizer = DQNCartPoleVisualizer()
 
     rb = ReplayBuffer(
         args.buffer_size,

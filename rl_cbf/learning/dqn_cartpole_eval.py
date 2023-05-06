@@ -7,7 +7,7 @@ import rl_cbf.envs
 from typing import Optional
 from rl_cbf.net.q_network import QNetwork
 
-class RolloutEvaluator:
+class DQNCartPoleEvaluator:
 
     features = (
         'values',
@@ -31,9 +31,10 @@ class RolloutEvaluator:
     
     def sample_grid_points(self, n_grid_points: int = 1):
         """ Sample grid points from the state space """
-        states = np.zeros((n_grid_points, self.eval_env.observation_space.shape[0]))
-        for i in range(n_grid_points):
-            states[i] = self.eval_env.observation_space.sample()
+        high = self.eval_env.observation_space.high
+        # Clip state space to 10
+        high = np.clip(high, 0, 10)
+        states = np.random.uniform(low=-high, high=high, size=(n_grid_points, 4))
         return states
     
     def postprocess(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -55,6 +56,7 @@ class RolloutEvaluator:
 
     def evaluate_rollout(self, model: QNetwork, 
                          initial_states: Optional[np.ndarray] = None, 
+                         num_rollouts: int = 10,
                          max_episode_length: int = 500
                         ) -> pd.DataFrame:
         """ Return pd.DataFrame of rollout data
@@ -63,9 +65,12 @@ class RolloutEvaluator:
         """
         rows = []
         if initial_states is None:
-            initial_states = self.get_default_initial_states(10)
+            initial_states = self.get_default_initial_states(num_rollouts)
 
         for i, initial_state in enumerate(initial_states):
+            # Reset the time limit
+            self.eval_env.reset()
+            # Reset DiverseCartPole-v1 to appropriate initial state
             initial_state = self.eval_env.reset_to(initial_state)
             done = False
             
