@@ -22,7 +22,7 @@ python rl_cbf/learning/dqn_train.py \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
-  --exp-name baseline_2M \
+  --exp-name baseline_supervised_2M \
   --capture-video \
   --track \
   --supervised-loss-coef 1.0
@@ -37,7 +37,7 @@ python rl_cbf/learning/dqn_train.py \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
-  --exp-name baseline_2M \
+  --exp-name bump_2M \
   --capture-video \
   --track \
   --enable-bump-parametrization
@@ -52,7 +52,7 @@ python rl_cbf/learning/dqn_train.py \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
-  --exp-name baseline_2M \
+  --exp-name bump_supervised_2M \
   --capture-video \
   --track \
   --enable-bump-parametrization \
