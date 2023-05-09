@@ -4,6 +4,8 @@ import itertools
 from typing import List
 from torch import Tensor 
 
+from rl_cbf.learning.torch_utils import make_grid
+
 # Test semantics of torch meshgrid
 def is_grid_valid(grid) -> bool:
     grid_shape = grid.shape[:-1]  # Get the grid shape without the last dimension
