@@ -32,7 +32,8 @@ jobs:
       - name: Install dependencies
         run: poetry install --with tests
       - name: Collect coverage
-        run: poetry run pytest tests --cov=amp_rl --cov-report=xml
+        # Ignore the diverse inverted pendulum test because it requires MuJoCoPy
+        run: poetry run pytest tests --ignore tests/envs/test_diverse_inverted_pendulum.py --cov=amp_rl --cov-report=xml
       - name: Upload coverage to CodeCov
         uses: codecov/codecov-action@v3
         with:
