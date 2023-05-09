@@ -20,24 +20,15 @@ class QNetwork(nn.Module):
         self.hidden_dim_2 = hidden_dim_2
         self.device = device
 
-        if enable_bump_parametrization:
-            self.network =  nn.Sequential(
-                nn.Linear(np.array(env.single_observation_space.shape).prod(), 120),
-                nn.ELU(),
-                nn.Linear(120, 84),
-                nn.ELU(),
-                nn.Linear(84, env.single_action_space.n),
-                nn.Sigmoid()
-            )
+        self.network = nn.Sequential(
+            nn.Linear(np.array(env.single_observation_space.shape).prod(), 120),
+            nn.ELU(),
+            nn.Linear(120, 84),
+            nn.ELU(),
+            nn.Linear(84, env.single_action_space.n),
+        )
+        if self.enable_bump_parametrization:
             self.max = 100
-        else:
-            self.network = nn.Sequential(
-                nn.Linear(np.array(env.single_observation_space.shape).prod(), 120),
-                nn.ELU(),
-                nn.Linear(120, 84),
-                nn.ELU(),
-                nn.Linear(84, env.single_action_space.n),
-            )
 
     @staticmethod
     def add_argparse_args(parser: 'argparse.ArgumentParser'):
@@ -57,24 +48,24 @@ class QNetwork(nn.Module):
             device=args.device
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.enable_bump_parametrization:
-            return self.max * self.network(x)
+    def forward(self, x: torch.Tensor, apply_sigmoid: bool = True) -> torch.Tensor:
+        if self.enable_bump_parametrization and apply_sigmoid:
+            return self.max * torch.sigmoid(self.network(x))
         else:
             return self.network(x)
         
-    def predict(self, states: np.ndarray) -> np.ndarray:
+    def predict(self, states: np.ndarray, apply_sigmoid: bool = True) -> np.ndarray:
         states = np.array(states)
         states_th = torch.Tensor(states.astype(np.float32)).to(self.device)
-        q_values = self.forward(states_th).detach().cpu().numpy()
+        q_values = self.forward(states_th, apply_sigmoid).detach().cpu().numpy()
         return q_values
     
-    def predict_value(self, states: np.ndarray) -> np.ndarray:
-        q_values = self.predict(states)
+    def predict_value(self, states: np.ndarray, apply_sigmoid: bool = True) -> np.ndarray:
+        q_values = self.predict(states, apply_sigmoid)
         return np.max(q_values, axis=-1)
     
-    def predict_action(self, states: np.ndarray) -> np.ndarray:
-        q_values = self.predict(states)
+    def predict_action(self, states: np.ndarray, apply_sigmoid: bool = True) -> np.ndarray:
+        q_values = self.predict(states, apply_sigmoid)
         return np.argmax(q_values, axis=-1)
 
 class QNetworkEnsemble(QNetwork):
@@ -86,9 +77,9 @@ class QNetworkEnsemble(QNetwork):
     def get_num_models(self):
         return len(self.models)
 
-    def forward(self, x, reduction: str ='min'):
+    def forward(self, x, reduction: str ='min', apply_sigmoid: bool = True):
         assert reduction in ['min', 'max', 'mean']
-        q_values = torch.stack([model(x) for model in self.models], dim=0)
+        q_values = torch.stack([model(x, apply_sigmoid) for model in self.models], dim=0)
         if reduction == 'min':
             return torch.min(q_values, dim=0)[0]
         elif reduction == 'max':
