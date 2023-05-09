@@ -91,7 +91,10 @@ class CartPoleCEnv(DecomposedCartPole):
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
             (states[..., 0] > -self.x_threshold) *
-            (states[..., 2] > -self.theta_threshold_radians)
+            (states[..., 2] > -self.theta_threshold_radians) * 
+            # Just here to prevent overflow...
+            (states[..., 0] < 1e6) *
+            (states[..., 2] < 1e6)
         )
         return ~is_safe
     
@@ -100,6 +103,9 @@ class CartPoleDEnv(DecomposedCartPole):
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
             (states[..., 0] < self.x_threshold) *
-            (states[..., 2] < self.theta_threshold_radians)
+            (states[..., 2] < self.theta_threshold_radians) *
+            # Just here to prevent underflow...
+            (states[..., 0] > -1e6) *
+            (states[..., 2] > -1e6)
         )
         return ~is_safe
