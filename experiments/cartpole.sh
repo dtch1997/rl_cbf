@@ -5,6 +5,7 @@ python rl_cbf/learning/dqn_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
+  --wandb-group DiverseCartPole \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -19,6 +20,7 @@ python rl_cbf/learning/dqn_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
+  --wandb-group DiverseCartPole \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -34,6 +36,7 @@ python rl_cbf/learning/dqn_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
+  --wandb-group DiverseCartPole \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -49,6 +52,7 @@ python rl_cbf/learning/dqn_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
+  --wandb-group DiverseCartPole \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
