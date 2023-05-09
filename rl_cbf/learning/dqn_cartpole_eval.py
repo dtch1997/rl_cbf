@@ -20,8 +20,13 @@ class DQNCartPoleEvaluator:
         'episode_return',
     )
 
-    def __init__(self):
+    def __init__(self,
+                 capture_video: bool = False,
+                 video_path: str = 'eval'):
         self.eval_env = gym.make('DiverseCartPole-v1')
+        self.capture_video = capture_video
+        if self.capture_video:
+            self.eval_env = gym.wrappers.RecordVideo(self.eval_env, f'./videos/{video_path}')
 
     def get_default_initial_states(self, n_states: int = 1):
         states = np.zeros((n_states, self.eval_env.observation_space.shape[0]))

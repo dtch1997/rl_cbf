@@ -69,15 +69,15 @@ class QNetwork(nn.Module):
         return np.argmax(q_values, axis=-1)
 
 class QNetworkEnsemble(QNetwork):
-    def __init__(self, envs, models: List[nn.Module]):
-        super(QNetworkEnsemble, self).__init__()
+    def __init__(self, envs, models: List[nn.Module], **kwargs):
+        super(QNetworkEnsemble, self).__init__(envs, **kwargs)
         self.envs = envs
         self.models = nn.ModuleList(models)
 
     def get_num_models(self):
         return len(self.models)
 
-    def forward(self, x, reduction: str ='min', apply_sigmoid: bool = True):
+    def forward(self, x,  apply_sigmoid: bool = True, reduction: str ='min'):
         assert reduction in ['min', 'max', 'mean']
         q_values = torch.stack([model(x, apply_sigmoid) for model in self.models], dim=0)
         if reduction == 'min':
