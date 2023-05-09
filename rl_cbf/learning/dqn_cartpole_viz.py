@@ -11,6 +11,7 @@ from matplotlib.ticker import MaxNLocator
 
 from typing import Callable, List
 from rl_cbf.net.q_network import QNetwork, QNetworkEnsemble
+from rl_cbf.learning.torch_utils import make_grid
 
 def get_zero_spaces():
     """ Get zero spaces for plotting
@@ -114,10 +115,7 @@ class DQNCartPoleVisualizer:
         # Evaluate model on theta and theta_dot
         _, _, theta_space, theta_dot_space = get_default_spaces()
         x_space, x_dot_space, _, _ = get_zero_spaces()
-        grid_x, grid_x_dot, grid_theta, grid_theta_dot = torch.meshgrid(
-            x_space, x_dot_space, theta_space, theta_dot_space
-        )
-        states = torch.stack([grid_x, grid_x_dot, grid_theta, grid_theta_dot], dim=-1)
+        states = make_grid([x_space, x_dot_space, theta_space, theta_dot_space])
         states = states.reshape(-1, 4)
         state_values = model.predict_value(states)
         state_values = state_values.reshape(1, 1, 100, 100)
@@ -131,10 +129,7 @@ class DQNCartPoleVisualizer:
         # Evaluate model on x and x_dot
         x_space, x_dot_space, _, _ = get_default_spaces()
         _, _, theta_space, theta_dot_space = get_zero_spaces()
-        grid_x, grid_x_dot, grid_theta, grid_theta_dot = torch.meshgrid(
-            x_space, x_dot_space, theta_space, theta_dot_space
-        )
-        states = torch.stack([grid_x, grid_x_dot, grid_theta, grid_theta_dot], dim=-1)
+        states = make_grid([x_space, x_dot_space, theta_space, theta_dot_space])
         states = states.reshape(-1, 4)
         state_values = model.predict_value(states)
         state_values = state_values.reshape(100, 100, 1, 1)
