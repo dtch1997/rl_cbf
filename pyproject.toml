@@ -19,6 +19,7 @@ moviepy = "^1.0.3"
 opencv-python = "^4.7.0.72"
 pandas = "^2.0.1"
 pygame = "^2.4.0"
+mujoco-py = "^2.1.2.14"
 
 [tool.poetry.group.tests]
 optional = true
