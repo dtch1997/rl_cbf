@@ -1,5 +1,7 @@
 import gym 
+import argparse
 import numpy as np
+import torch
 import torch.nn as nn
 import pandas as pd
 
@@ -42,10 +44,25 @@ class DQNCartPoleEvaluator:
         states = np.random.uniform(low=-high, high=high, size=(n_grid_points, 4))
         return states
     
-    def postprocess(self, df: pd.DataFrame) -> pd.DataFrame:
-        df['mean_values'] = df['values'].apply(lambda x: np.mean(x))
-        df['mean_td_errors'] = df['td_errors'].apply(lambda x: np.mean(x))
-        return df
+    def compute_episode_statistics(self, df: pd.DataFrame) -> pd.DataFrame:
+        """ Compute episode statistics """
+        episode_lengths = df.groupby('episode')['timestep'].max()
+        episode_returns = df.groupby('episode')['reward'].sum()
+        episode_statistics = pd.DataFrame({
+            'episode_length': episode_lengths,
+            'episode_return': episode_returns,
+        })
+        return episode_statistics
+    
+    def compute_overall_statistics(self, df: pd.DataFrame) -> pd.DataFrame:
+        """ Compute overall statistics """
+        overall_statistics = pd.DataFrame({
+            'mean_value': df['value'].mean(),
+            'mean_td_error': df['td_error'].mean(),
+            'max_td_error': df['td_error'].max(),
+            '75th_percentile_td_error': df['td_error'].quantile(0.75),
+        }, index=[0])
+        return overall_statistics
     
     def evaluate(self, model: QNetwork, strategy: str) -> pd.DataFrame:
         if strategy == 'rollout':
@@ -66,66 +83,61 @@ class DQNCartPoleEvaluator:
                         ) -> pd.DataFrame:
         """ Return pd.DataFrame of rollout data
         
-        Each row is 1 episode 
+        Each row is 1 timestep of 1 rollout
         """
         rows = []
         if initial_states is None:
             initial_states = self.get_default_initial_states(num_rollouts)
 
-        for i, initial_state in enumerate(initial_states):
+        for episode_idx, initial_state in enumerate(initial_states):
             # Reset the time limit
             self.eval_env.reset()
             # Reset DiverseCartPole-v1 to appropriate initial state
             initial_state = self.eval_env.reset_to(initial_state)
             done = False
-            
-            states = []
-            actions = []
-            values = []
-            rewards = []
-            dones = []
-            td_errors = []
 
             state = initial_state
-            t = 0
-            while not done and t < max_episode_length:
-                t += 1
-                states.append(state)
+            timestep = 0
+            while not done and timestep < max_episode_length:
+                timestep += 1
                 action = model.predict_action(state)
-                actions.append(action)
                 value = model.predict_value(state)
-                values.append(value)
                 next_state, reward, done, info = self.eval_env.step(action)
-                rewards.append(reward)
-                dones.append(done)
-                
-                next_value = model.predict_value(state)
+                next_value = model.predict_value(next_state)
                 td_error = np.abs(value - reward - 0.99 * next_value)
 
-                td_errors.append(td_error)
+                rows.append({
+                    'episode': episode_idx,
+                    'timestep': timestep,
+                    'value': value,
+                    'state': state,
+                    'action': action,
+                    'reward': reward,
+                    'done': done,
+                    'next_state': next_state,
+                    'td_error': td_error,
+                })
+
                 state = next_state
 
-            episode_length = len(states)
-            # Convert to np.ndarray
-            states = np.array(states)
-            actions = np.array(actions)
-            values = np.array(values)
-            rewards = np.array(rewards)
-            dones = np.array(dones)
-            td_errors = np.array(td_errors)
-            episode_return = np.sum(rewards)
-
-            rows.append({
-                'values': values,
-                'states': states,
-                'actions': actions,
-                'rewards': rewards,
-                'dones': dones,
-                'td_errors': td_errors,
-                'episode_length': episode_length,
-                'episode_return': episode_return,
-            })
-
         df = pd.DataFrame(rows)
-        df = self.postprocess(df)
         return df
+    
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser = QNetwork.add_argparse_args(parser)
+    parser.add_argument('--model-path', type=str, required=True)
+    parser.add_argument('--video-path', type=str, default='')
+    parser.add_argument('--results-path', type=str, default='results.csv')
+    args = parser.parse_args()
+
+    _envs = gym.vector.SyncVectorEnv([lambda: gym.make('DiverseCartPole-v1')])
+    model = QNetwork.from_argparse_args(_envs, args)
+    model.load_state_dict(torch.load(args.model_path, map_location=args.device))
+
+    capture_video = (args.video_path != '')
+    evaluator = DQNCartPoleEvaluator(capture_video=capture_video, video_path=args.video_path)
+    df = evaluator.evaluate_grid(model, n_grid_points=10000)
+    print(df['mean_td_errors'])
+    df.to_csv(args.results_path, index=False)

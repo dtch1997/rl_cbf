@@ -247,11 +247,16 @@ if __name__ == "__main__":
                 # TODO: evaluate model
                 eval_strategies = ('rollout', 'grid')
                 for strategy in eval_strategies:
-                    metrics: pd.DataFrame = evaluator.evaluate(q_network, strategy)
-                    writer.add_scalar(f'eval/{strategy}/episode_length', metrics['episode_length'].mean(), global_step)
-                    writer.add_scalar(f'eval/{strategy}/episode_return', metrics['episode_return'].mean(), global_step)
-                    writer.add_scalar(f'eval/{strategy}/values', metrics['mean_values'].mean(), global_step)
-                    writer.add_scalar(f'eval/{strategy}/td_errors', metrics['mean_td_errors'].mean(), global_step)
+                    data: pd.DataFrame = evaluator.evaluate(q_network, strategy)
+                    episode_statistics = evaluator.compute_episode_statistics(data)
+                    writer.add_scalar(f'eval/{strategy}/episode_length', episode_statistics['episode_length'].mean(), global_step)
+                    writer.add_scalar(f'eval/{strategy}/episode_return', episode_statistics['episode_return'].mean(), global_step)
+                    overall_statistics = evaluator.compute_overall_statistics(data)
+                    assert len(overall_statistics) == 1
+                    writer.add_scalar(f'eval/{strategy}/mean_value', overall_statistics['mean_value'][0], global_step)
+                    writer.add_scalar(f'eval/{strategy}/mean_td_error', overall_statistics['mean_td_error'][0], global_step)
+                    writer.add_scalar(f'eval/{strategy}/max_td_error', overall_statistics['max_td_error'][0], global_step)
+                    writer.add_scalar(f'eval/{strategy}/75th_percentile_td_error', overall_statistics['75th_percentile_td_error'][0], global_step)
 
             if args.viz_frequency > 0 and global_step % args.viz_frequency == 0: 
                 fig = visualizer.visualize(q_network)
