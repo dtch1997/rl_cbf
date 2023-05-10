@@ -27,3 +27,8 @@ class DiverseCartPoleEnv(CartPoleEnv):
         self.reset()
         self.state = state
         return state
+    
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        if done: reward = 0
+        return obs, reward, done, info
