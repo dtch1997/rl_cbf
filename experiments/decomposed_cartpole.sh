@@ -1,58 +1,11 @@
-# baseline experiment
+# CartPoleA
 python rl_cbf/learning/dqn_cartpole_train.py \
-  --env-id DiverseCartPole-v1 \
+  --env-id CartPoleA-v1 \
   --eval-frequency 10000 \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
-  --save-model \
-  --total-timesteps 2000000 \
-  --exploration-fraction 0.125 \
-  --exp-name baseline_2M \
-  --capture-video \
-  --track
-
-# supervised losses
-python rl_cbf/learning/dqn_cartpole_train.py \
-  --env-id DiverseCartPole-v1 \
-  --eval-frequency 10000 \
-  --viz-frequency 100000 \
-  --wandb-entity dtch1997 \
-  --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
-  --save-model \
-  --total-timesteps 2000000 \
-  --exploration-fraction 0.125 \
-  --exp-name baseline_supervised_2M \
-  --capture-video \
-  --track \
-  --supervised-loss-coef 1.0
-  
-# bump architecture
-python rl_cbf/learning/dqn_cartpole_train.py \
-  --env-id DiverseCartPole-v1 \
-  --eval-frequency 10000 \
-  --viz-frequency 100000 \
-  --wandb-entity dtch1997 \
-  --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
-  --save-model \
-  --total-timesteps 2000000 \
-  --exploration-fraction 0.125 \
-  --exp-name bump_2M \
-  --capture-video \
-  --track \
-  --enable-bump-parametrization
-
-# bump architecture with supervised losses
-python rl_cbf/learning/dqn_cartpole_train.py \
-  --env-id DiverseCartPole-v1 \
-  --eval-frequency 10000 \
-  --viz-frequency 100000 \
-  --wandb-entity dtch1997 \
-  --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
+  --wandb-group cartpole_decompose_ab \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -62,3 +15,53 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --enable-bump-parametrization \
   --supervised-loss-coef 1.0
 
+# CartPoleB
+python rl_cbf/learning/dqn_cartpole_train.py \
+  --env-id CartPoleB-v1 \
+  --eval-frequency 10000 \
+  --viz-frequency 100000 \
+  --wandb-entity dtch1997 \
+  --wandb-project RL_CBF \
+  --wandb-group cartpole_decompose_ab \
+  --save-model \
+  --total-timesteps 2000000 \
+  --exploration-fraction 0.125 \
+  --exp-name bump_supervised_2M \
+  --capture-video \
+  --track \
+  --enable-bump-parametrization \
+  --supervised-loss-coef 1.0
+
+  # CartPoleC
+python rl_cbf/learning/dqn_cartpole_train.py \
+  --env-id CartPoleC-v1 \
+  --eval-frequency 10000 \
+  --viz-frequency 100000 \
+  --wandb-entity dtch1997 \
+  --wandb-project RL_CBF \
+  --wandb-group cartpole_decompose_cd \
+  --save-model \
+  --total-timesteps 2000000 \
+  --exploration-fraction 0.125 \
+  --exp-name bump_supervised_2M \
+  --capture-video \
+  --track \
+  --enable-bump-parametrization \
+  --supervised-loss-coef 1.0
+
+  # CartPoleD
+python rl_cbf/learning/dqn_cartpole_train.py \
+  --env-id CartPoleD-v1 \
+  --eval-frequency 10000 \
+  --viz-frequency 100000 \
+  --wandb-entity dtch1997 \
+  --wandb-project RL_CBF \
+  --wandb-group cartpole_decompose_cd \
+  --save-model \
+  --total-timesteps 2000000 \
+  --exploration-fraction 0.125 \
+  --exp-name bump_supervised_2M \
+  --capture-video \
+  --track \
+  --enable-bump-parametrization \
+  --supervised-loss-coef 1.0
