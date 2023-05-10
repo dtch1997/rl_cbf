@@ -1,5 +1,5 @@
 # baseline experiment
-python rl_cbf/learning/dqn_train.py \
+python rl_cbf/learning/dqn_cartpole_train.py \
   --env-id DiverseCartPole-v1 \
   --eval-frequency 10000 \
   --viz-frequency 100000 \
@@ -13,7 +13,7 @@ python rl_cbf/learning/dqn_train.py \
   --track
 
 # supervised losses
-python rl_cbf/learning/dqn_train.py \
+python rl_cbf/learning/dqn_cartpole_train.py \
   --env-id DiverseCartPole-v1 \
   --eval-frequency 10000 \
   --viz-frequency 100000 \
@@ -28,7 +28,7 @@ python rl_cbf/learning/dqn_train.py \
   --supervised-loss-coef 1.0
   
 # bump architecture
-python rl_cbf/learning/dqn_train.py \
+python rl_cbf/learning/dqn_cartpole_train.py \
   --env-id DiverseCartPole-v1 \
   --eval-frequency 10000 \
   --viz-frequency 100000 \
@@ -43,7 +43,7 @@ python rl_cbf/learning/dqn_train.py \
   --enable-bump-parametrization
 
 # bump architecture with supervised losses
-python rl_cbf/learning/dqn_train.py \
+python rl_cbf/learning/dqn_cartpole_train.py \
   --env-id DiverseCartPole-v1 \
   --eval-frequency 10000 \
   --viz-frequency 100000 \
