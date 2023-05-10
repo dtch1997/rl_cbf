@@ -129,6 +129,8 @@ if __name__ == "__main__":
 
     # env setup
     envs = gym.vector.SyncVectorEnv([make_env(args.env_id, args.seed, 0, args.capture_video, run_name)])
+    # set up env for calling methods
+    _env = gym.make(args.env_id)
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     q_network = QNetwork.from_argparse_args(envs, args).to(device)
@@ -192,16 +194,9 @@ if __name__ == "__main__":
                 loss = F.mse_loss(td_target, old_val)
 
                 # Implement supervised loss on unsafe states
-                states = np.random.uniform(
-                    low = (-4.8, -4.0, -0.4, -3.0),
-                    high = (4.8, 4.0, 0.4, 3.0),
-                )
-                def is_unsafe(states: np.ndarray):
-                    x, x_dot, theta, theta_dot = states[..., 0], states[..., 1], states[..., 2], states[..., 3]
-                    theta_threshold = 12 * 2 * np.pi / 360
-                    return np.logical_or(np.abs(x) > 2.4, np.abs(theta) > theta_threshold)
-
-                unsafe_states = states[is_unsafe(states)].astype(np.float32)
+                states = _env.sample_states(args.batch_size)
+                is_unsafe = _env.is_done(states)
+                unsafe_states = states[is_unsafe].astype(np.float32)
                 unsafe_states = torch.from_numpy(unsafe_states).to(device).to(torch.float32)
                 unsafe_qval_pred = q_network(unsafe_states)
                 unsafe_val_pred = unsafe_qval_pred.max(dim=1)[0]

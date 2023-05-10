@@ -5,7 +5,19 @@ from gym import logger
 from gym.envs.classic_control import CartPoleEnv
 
 class DecomposedCartPole(CartPoleEnv):
-    """ CartPoleEnv but termination condition is overridable """
+    """ Base CartPole class
+    
+    Termination condition is overridable 
+    Define function for sampling states
+    """
+    def sample_states(self, n_states: int) -> np.ndarray:
+        states = np.random.uniform(
+            low = (-4.8, -4.0, -0.4, -3.0),
+            high = (4.8, 4.0, 0.4, 3.0),
+            size = ((n_states, 4))
+        )
+        return states
+
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
             (states[..., 0] > -self.x_threshold) *

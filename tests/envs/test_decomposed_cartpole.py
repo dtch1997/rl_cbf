@@ -1,9 +1,14 @@
 import numpy as np
 import unittest
 from gym.envs.classic_control import CartPoleEnv
-from rl_cbf.envs.decomposed_cartpole import CartPoleAEnv, CartPoleBEnv, CartPoleCEnv, CartPoleDEnv
+from rl_cbf.envs.decomposed_cartpole import CartPoleAEnv, CartPoleBEnv, CartPoleCEnv, CartPoleDEnv, DecomposedCartPole
 
 class TestDecomposedCartPole(unittest.TestCase):
+
+    def test_decomposed_cartpole(self):
+        env = DecomposedCartPole()
+        states = env.sample_states(100)
+        self.assertEqual(states.shape, (100, 4))
 
     def test_cart_pole_a_env(self):
         env = CartPoleAEnv()

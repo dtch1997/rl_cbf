@@ -2,9 +2,9 @@ import math
 import numpy as np
 
 from typing import Optional 
-from gym.envs.classic_control import CartPoleEnv
+from rl_cbf.envs.decomposed_cartpole import DecomposedCartPole
 
-class DiverseCartPoleEnv(CartPoleEnv):
+class DiverseCartPoleEnv(DecomposedCartPole):
     """ CartPoleEnv with more diverse initial states """
     def reset(
         self,
