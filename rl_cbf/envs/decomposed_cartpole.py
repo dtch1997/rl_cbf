@@ -54,7 +54,7 @@ class DecomposedCartPole(CartPoleEnv):
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
-            reward = 1.0
+            reward = 0.0
         else:
             if self.steps_beyond_done == 0:
                 logger.warn(
