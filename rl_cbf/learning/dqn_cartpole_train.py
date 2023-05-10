@@ -191,22 +191,7 @@ if __name__ == "__main__":
                 old_val = q_network(data.observations).gather(1, data.actions).squeeze()
                 loss = F.mse_loss(td_target, old_val)
 
-                # Implement analytic loss
-                # In CartPole, assume that state [0,0,0,0] is optimal
-                safe_states = np.random.uniform(
-                    low = (-2.0, 0, 0, 0),
-                    high = (2.0, 0, 0, 0),
-                    size = (args.batch_size, 4)
-                ).astype(np.float32)
-                safe_states = torch.Tensor(safe_states).to(device)
-                optimal_qval_pred = q_network(safe_states)
-                optimal_val_pred = optimal_qval_pred.max(dim=1)[0]
-                optimal_val_true = 100 * torch.ones(args.batch_size, device=device, dtype=torch.float32)
-                safe_loss = F.mse_loss(optimal_val_pred, optimal_val_true)
-                writer.add_scalar("losses/safe_loss", safe_loss, global_step)
-                loss += args.supervised_loss_coef * safe_loss
-
-                # Implement unsafe loss
+                # Implement supervised loss on unsafe states
                 states = np.random.uniform(
                     low = (-4.8, -4.0, -0.4, -3.0),
                     high = (4.8, 4.0, 0.4, 3.0),
