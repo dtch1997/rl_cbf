@@ -34,10 +34,3 @@ register(
     max_episode_steps=500,
     reward_threshold=475.0,
 )
-
-register(
-    'DiverseInvertedPendulum-v1',
-    entry_point='rl_cbf.envs.diverse_inverted_pendulum:DiverseInvertedPendulumEnv',
-    max_episode_steps=500,
-    reward_threshold=475.0,
-)
