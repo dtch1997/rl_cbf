@@ -13,9 +13,15 @@ class QNetwork(nn.Module):
                  hidden_dim_1: int = 120,
                  hidden_dim_2: int = 84,
                  enable_bump_parametrization: bool = False,
+                 min_value: float = 0,
+                 max_value: float = 100,
                  device: str = 'cuda'):
         super().__init__()
         self.enable_bump_parametrization = enable_bump_parametrization
+        # Only used in case of bump parametrization
+        self.max = max_value
+        # Not implemented yet
+        self.min = min_value
         self.hidden_dim_1 = hidden_dim_1
         self.hidden_dim_2 = hidden_dim_2
         self.device = device
@@ -27,8 +33,6 @@ class QNetwork(nn.Module):
             nn.ELU(),
             nn.Linear(84, env.single_action_space.n),
         )
-        if self.enable_bump_parametrization:
-            self.max = 100
 
     @staticmethod
     def add_argparse_args(parser: 'argparse.ArgumentParser'):
@@ -39,13 +43,14 @@ class QNetwork(nn.Module):
         return parser
     
     @staticmethod
-    def from_argparse_args(env, args):
+    def from_argparse_args(env, args, **kwargs):
         return QNetwork(
             env, 
             enable_bump_parametrization=args.enable_bump_parametrization, 
             hidden_dim_1=args.hidden_dim_1,
             hidden_dim_2=args.hidden_dim_2, 
-            device=args.device
+            device=args.device,
+            **kwargs
         )
 
     def forward(self, x: torch.Tensor, apply_sigmoid: bool = True) -> torch.Tensor:
