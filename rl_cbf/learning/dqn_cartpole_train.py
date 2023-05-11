@@ -248,7 +248,15 @@ if __name__ == "__main__":
     if args.save_model:
         model_path = f"runs/{run_name}/{args.exp_name}.pth"
         base_path = f"runs/{run_name}"
-        save_model(q_network, model_path, base_path, args) 
+        save_model(q_network, model_path, base_path, args)
+        
+        for strategy in eval_strategies:
+            data: pd.DataFrame = evaluator.evaluate(q_network, strategy)
+            data.to_csv(f"runs/{run_name}/{args.exp_name}_{strategy}.csv", index=False)
+            wandb.save(
+                f"runs/{run_name}/{args.exp_name}_{strategy}.csv", 
+                base_path=base_path
+            )
     
     envs.close()
     writer.close()
