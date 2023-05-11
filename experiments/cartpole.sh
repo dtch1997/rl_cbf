@@ -3,6 +3,7 @@
 # The variable $1 refers to the first argument passed to the script. 
 # If no argument is passed, 'Default Value' will be used.
 seed=${1:-'0'}
+group_name=${2:-'cartpole_ablations'}
 
 echo "Running experiments with seed: $seed"
 
@@ -13,7 +14,7 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
+  --wandb-group $group_name \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -29,7 +30,7 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
+  --wandb-group $group_name \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -46,7 +47,7 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
+  --wandb-group $group_name \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -63,7 +64,7 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
+  --wandb-group $group_name \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
@@ -81,7 +82,7 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --viz-frequency 100000 \
   --wandb-entity dtch1997 \
   --wandb-project RL_CBF \
-  --wandb-group cartpole_ablations \
+  --wandb-group $group_name \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
