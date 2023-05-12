@@ -11,17 +11,6 @@ from rl_cbf.net.q_network import QNetwork
 
 class DQNCartPoleEvaluator:
 
-    features = (
-        'values',
-        'states',
-        'actions',
-        'rewards',
-        'dones',
-        'td_errors',
-        'episode_length',
-        'episode_return',
-    )
-
     def __init__(self,
                  capture_video: bool = False,
                  video_path: str = 'eval'):

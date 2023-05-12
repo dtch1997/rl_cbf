@@ -41,3 +41,10 @@ register(
     max_episode_steps=500,
     reward_threshold=475.0,
 )
+
+register(
+    'BaseMountainCar-v0',
+    entry_point='rl_cbf.envs.mountaincar:BaseMountainCarEnv',
+    max_episode_steps=200,
+    reward_threshold=-110.0,
+)

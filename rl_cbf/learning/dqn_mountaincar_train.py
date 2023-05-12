@@ -17,9 +17,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 import rl_cbf.envs
 from rl_cbf.learning.env_utils import make_env
-from rl_cbf.learning.dqn_cartpole_eval import DQNCartPoleEvaluator
-from rl_cbf.learning.dqn_cartpole_viz import DQNCartPoleVisualizer
 from rl_cbf.net.q_network import QNetwork
+from rl_cbf.learning.dqn_mountaincar_viz import DQNMountainCarVisualizer
+from rl_cbf.learning.dqn_mountaincar_eval import DQNCMountainCarEvaluator
 
 def parse_args():
     # fmt: off
@@ -136,13 +136,13 @@ if __name__ == "__main__":
     _env = gym.make(args.env_id)
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
+    evaluator = DQNCMountainCarEvaluator()
+    visualizer = DQNMountainCarVisualizer()
+
     q_network = QNetwork.from_argparse_args(envs, args).to(device)
     optimizer = optim.Adam(q_network.parameters(), lr=args.learning_rate)
     target_network = QNetwork.from_argparse_args(envs, args).to(device)
     target_network.load_state_dict(q_network.state_dict())
-
-    evaluator = DQNCartPoleEvaluator()
-    visualizer = DQNCartPoleVisualizer()
 
     rb = ReplayBuffer(
         args.buffer_size,
@@ -196,17 +196,17 @@ if __name__ == "__main__":
                 old_val = q_network(data.observations).gather(1, data.actions).squeeze()
                 loss = F.mse_loss(td_target, old_val)
 
-                # Implement supervised loss on unsafe states
+                # Implement supervised loss on goal states
                 states = _env.sample_states(args.batch_size)
-                is_unsafe = _env.is_done(states)
-                unsafe_states = states[is_unsafe].astype(np.float32)
-                unsafe_states = torch.from_numpy(unsafe_states).to(device).to(torch.float32)
-                unsafe_qval_pred = q_network(unsafe_states)
-                unsafe_val_pred = unsafe_qval_pred.max(dim=1)[0]
-                unsafe_val_true = 0 * torch.ones(unsafe_val_pred.shape, device=device, dtype=torch.float32)
-                unsafe_loss = F.mse_loss(unsafe_val_pred, unsafe_val_true)
-                writer.add_scalar("losses/unsafe_loss", unsafe_loss, global_step)
-                loss += args.supervised_loss_coef * unsafe_loss
+                is_goal = _env.is_done(states)
+                goal_states = states[is_goal].astype(np.float32)
+                goal_states = torch.from_numpy(goal_states).to(device).to(torch.float32)
+                goal_qval_pred = q_network(goal_states)
+                goal_val_pred = goal_qval_pred.max(dim=1)[0]
+                goal_val_true = 0 * torch.ones(goal_val_pred.shape, device=device, dtype=torch.float32)
+                goal_loss = F.mse_loss(goal_val_pred, goal_val_true)
+                writer.add_scalar("losses/goal_loss", goal_loss, global_step)
+                loss += args.supervised_loss_coef * goal_loss
 
                 if global_step % 100 == 0:
                     writer.add_scalar("losses/td_loss", loss, global_step)
@@ -241,21 +241,13 @@ if __name__ == "__main__":
                     writer.add_scalar(f'eval/{strategy}/75th_percentile_td_error', overall_statistics['75th_percentile_td_error'][0], global_step)
 
             if args.viz_frequency > 0 and global_step % args.viz_frequency == 0: 
-                fig = visualizer.visualize(q_network)
-                writer.add_figure('viz/barrier_function', fig, global_step)
+                fig = visualizer.visualize(q_network)                
+                writer.add_figure('viz/value_function', fig, global_step)
 
     if args.save_model:
         model_path = f"runs/{run_name}/{args.exp_name}.pth"
         base_path = f"runs/{run_name}"
-        save_model(q_network, model_path, base_path, args)
-        
-        for strategy in eval_strategies:
-            data: pd.DataFrame = evaluator.evaluate(q_network, strategy)
-            data.to_csv(f"runs/{run_name}/{args.exp_name}_{strategy}.csv", index=False)
-            wandb.save(
-                f"runs/{run_name}/{args.exp_name}_{strategy}.csv", 
-                base_path=base_path
-            )
+        save_model(q_network, model_path, base_path, args) 
     
     envs.close()
     writer.close()

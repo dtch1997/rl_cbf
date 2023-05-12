@@ -2,9 +2,9 @@ import math
 import numpy as np
 
 from typing import Optional 
-from rl_cbf.envs.decomposed_cartpole import DecomposedCartPole
+from rl_cbf.envs.decomposed_cartpole import BaseCartPole
 
-class DiverseCartPoleEnv(DecomposedCartPole):
+class DiverseCartPoleEnv(BaseCartPole):
     """ CartPoleEnv with more diverse initial states """
     def reset(
         self,
@@ -22,13 +22,3 @@ class DiverseCartPoleEnv(DecomposedCartPole):
             return np.array(self.state, dtype=np.float32)
         else:
             return np.array(self.state, dtype=np.float32), {}
-        
-    def reset_to(self, state: np.ndarray):
-        self.reset()
-        self.state = state
-        return state
-    
-    def step(self, action):
-        obs, reward, done, info = super().step(action)
-        if done: reward = 0
-        return obs, reward, done, info

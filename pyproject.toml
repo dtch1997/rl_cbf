@@ -20,6 +20,8 @@ opencv-python = "^4.7.0.72"
 pandas = "^2.0.1"
 pygame = "^2.4.0"
 mujoco-py = "^2.1.2.14"
+siren-pytorch = "^0.1.6"
+h5py = "^3.8.0"
 
 [tool.poetry.group.tests]
 optional = true

@@ -4,11 +4,13 @@ import numpy as np
 from gym import logger
 from gym.envs.classic_control import CartPoleEnv
 
-class DecomposedCartPole(CartPoleEnv):
+class BaseCartPole(CartPoleEnv):
     """ Base CartPole class
     
-    Termination condition is overridable 
     Define function for sampling states
+    Termination condition is overridable 
+    Define function for custom reset
+    Modified reward to be correct 
     """
     def sample_states(self, n_states: int) -> np.ndarray:
         states = np.random.uniform(
@@ -26,6 +28,11 @@ class DecomposedCartPole(CartPoleEnv):
             (states[..., 2] < self.theta_threshold_radians)
         )
         return ~is_safe
+    
+    def reset_to(self, state: np.ndarray):
+        self.reset()
+        self.state = state
+        return state
 
     def step(self, action):
         err_msg = f"{action!r} ({type(action)}) invalid"
@@ -59,13 +66,15 @@ class DecomposedCartPole(CartPoleEnv):
 
         self.state = (x, x_dot, theta, theta_dot)
 
-        done = self.is_done(np.array(self.state))
+        # Changed this line
+        done = self.is_done(np.array(self.state)).item()
 
         if not done:
             reward = 1.0
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
+            # Changed this line too, from 1 to 0
             reward = 0.0
         else:
             if self.steps_beyond_done == 0:
@@ -80,7 +89,7 @@ class DecomposedCartPole(CartPoleEnv):
 
         return np.array(self.state, dtype=np.float32), reward, done, {}
     
-class CartPoleAEnv(DecomposedCartPole):
+class CartPoleAEnv(BaseCartPole):
 
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
@@ -89,7 +98,7 @@ class CartPoleAEnv(DecomposedCartPole):
         )
         return ~is_safe
     
-class CartPoleBEnv(DecomposedCartPole):
+class CartPoleBEnv(BaseCartPole):
     
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
@@ -98,7 +107,7 @@ class CartPoleBEnv(DecomposedCartPole):
         )
         return ~is_safe
     
-class CartPoleCEnv(DecomposedCartPole):
+class CartPoleCEnv(BaseCartPole):
 
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
@@ -110,7 +119,7 @@ class CartPoleCEnv(DecomposedCartPole):
         )
         return ~is_safe
     
-class CartPoleDEnv(DecomposedCartPole):
+class CartPoleDEnv(BaseCartPole):
     
     def is_done(self, states: np.ndarray) -> np.ndarray:
         is_safe = (
