@@ -141,7 +141,10 @@ if __name__ == "__main__":
     target_network = QNetwork.from_argparse_args(envs, args).to(device)
     target_network.load_state_dict(q_network.state_dict())
 
-    evaluator = DQNCartPoleEvaluator()
+    evaluator = DQNCartPoleEvaluator(
+        # Need to specify env_id for different termination conditions
+        env_id = args.env_id,
+    )
     visualizer = DQNCartPoleVisualizer()
 
     rb = ReplayBuffer(
@@ -240,6 +243,14 @@ if __name__ == "__main__":
                     writer.add_scalar(f'eval/{strategy}/max_td_error', overall_statistics['max_td_error'][0], global_step)
                     writer.add_scalar(f'eval/{strategy}/75th_percentile_td_error', overall_statistics['75th_percentile_td_error'][0], global_step)
 
+                barrier_df = evaluator.evaluate_barrier(q_network, evaluator.sample_grid_points(10000))
+                alphas = np.array([0.25, 0.5, 0.9])
+                barrier_validity = evaluator.calculate_validity(barrier_df, alphas)
+                for alpha, validity in zip(alphas, barrier_validity):
+                    writer.add_scalar(f'eval/barrier/validity_alpha_{alpha}', validity, global_step)
+                barrier_coverage = evaluator.calculate_coverage(barrier_df)
+                writer.add_scalar('eval/barrier/coverage', barrier_coverage, global_step)
+
             if args.viz_frequency > 0 and global_step % args.viz_frequency == 0: 
                 fig = visualizer.visualize(q_network)
                 writer.add_figure('viz/barrier_function', fig, global_step)
@@ -256,6 +267,18 @@ if __name__ == "__main__":
                 f"runs/{run_name}/{args.exp_name}_{strategy}.csv", 
                 base_path=base_path
             )
+        
+        barrier_df = evaluator.evaluate_barrier(q_network, evaluator.sample_grid_points(10000))
+        alphas = np.linspace(0, 1, 100)
+        barrier_validity = evaluator.calculate_validity(barrier_df, alphas)
+        barrier_coverage = evaluator.calculate_coverage(barrier_df)
+        writer.add_scalar('eval/barrier/coverage', barrier_coverage, global_step)
+
+        if args.track:
+            validity_data = [[alpha, validity] for alpha, validity in zip(alphas, barrier_validity)]
+            validity_table = wandb.Table(data=validity_data, columns=["alpha", "validity"])
+            lineplot = wandb.plot.line(validity_table, "alpha", "validity", title="Barrier validity")
+            wandb.log({"final_barrier_validity": lineplot})
     
     envs.close()
     writer.close()

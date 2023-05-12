@@ -29,8 +29,9 @@ class DQNCartPoleEvaluator:
     def sample_grid_points(self, n_grid_points: int = 1):
         """ Sample grid points from the state space """
         high = self.eval_env.observation_space.high
-        # Clip state space to 10
-        high = np.clip(high, 0, 10)
+        # Clip velocites to 1.0
+        high[1] = 1.0
+        high[3] = 1.0
         states = np.random.uniform(low=-high, high=high, size=(n_grid_points, 4))
         return states
     
@@ -158,22 +159,14 @@ class DQNCartPoleEvaluator:
         df = pd.DataFrame(rows)
         return df
     
-    def calculate_accuracy(self, df: pd.DataFrame) -> float:
-        """ Determine whether barrier condition (i) is satisfied """
-        accuracy = 0
-        df = df[['episode', 'barrier_value', 'state']].drop_duplicates(['episode'])
-        state = df['state']
-        state = np.stack(state.to_numpy())
-
-        is_unsafe = self.eval_env.is_done(state)
-        barrier_values = df['barrier_value'].to_numpy()
-        accuracy = (barrier_values[is_unsafe] < 0).mean()       
-        
-        return accuracy
+    def calculate_coverage(self, df: pd.DataFrame) -> float:
+        """ Determine proportion of state space certified as safe """
+        df = df[['episode', 'barrier_value']].drop_duplicates(['episode'])
+        coverage = (df['barrier_value'] >= 0).mean()    
+        return coverage
     
     def calculate_valid_1(self, df):
         """ Check whether condition 1 is satisfied """
-        df = df[['episode', 'barrier_value', 'state']].drop_duplicates(['episode'])
         state = df['state']
         state = np.stack(state.to_numpy())
 
@@ -184,22 +177,20 @@ class DQNCartPoleEvaluator:
 
         return valid_1
     
-    def calculate_validity(self, df: pd.DataFrame, alphas: np.ndarray) -> np.ndarray:
+    def calculate_validity(self, df: pd.DataFrame, one_minus_alphas: np.ndarray) -> np.ndarray:
         """ Determine whether barrier condition is satisfied for each point """
         df = df[['episode', 'barrier_value', 'next_barrier_value', 'state']]
-        valid_1 = self.calculate_valid_1(df)
-
-        barrier_values = df[['episode', 'barrier_value']].drop_duplicates(['episode'])
         sup_next_barrier_values = df[['episode', 'next_barrier_value']] \
             .groupby('episode').max()
+        df = df.drop_duplicates('episode')
+        df = pd.merge(df[['episode', 'barrier_value', 'state']], sup_next_barrier_values, on='episode')
 
-        df_merged = pd.merge(barrier_values, sup_next_barrier_values, on='episode')  
-
-        validities = np.zeros_like(alphas)
-        for i, one_minus_alpha in enumerate(alphas):
+        validities = np.zeros_like(one_minus_alphas)
+        valid_1 = self.calculate_valid_1(df)
+        for i, one_minus_alpha in enumerate(one_minus_alphas):
             valid_2 = (
-                (df_merged['barrier_value'] < 0) | 
-                (df_merged['next_barrier_value'] >= one_minus_alpha * df_merged['barrier_value'])
+                (df['barrier_value'] < 0) | 
+                (df['next_barrier_value'] >= one_minus_alpha * df['barrier_value'])
             )
             validities[i] = (valid_1 * valid_2).mean()
         return validities
@@ -221,10 +212,10 @@ if __name__ == "__main__":
     evaluator = DQNCartPoleEvaluator(capture_video=capture_video, video_path=args.video_path)
     
     barrier_df = evaluator.evaluate_barrier(model, evaluator.sample_grid_points(10000))
-    barrier_accuracy = evaluator.calculate_accuracy(barrier_df)
+    barrier_coverage = evaluator.calculate_coverage(barrier_df)
     barrier_validity = evaluator.calculate_validity(barrier_df, np.linspace(0, 1, 100))
-    
-    print("Barrier accuracy: ", barrier_accuracy)
+
+    print("Barrier coverage: ", barrier_coverage)
     print("Barrier validity: ", barrier_validity)
     
     df = evaluator.evaluate_grid(model, n_grid_points=10000)
