@@ -1,6 +1,6 @@
 group_name=${1:-'cartpole_ablations_seeded'}
 
-for SEED in 1 2 3 4 5
+for seed in 1 2 3 4 5
 do
     # ablate exploration by training on regular environment
     python rl_cbf/learning/dqn_cartpole_train.py \
