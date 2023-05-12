@@ -243,6 +243,7 @@ if __name__ == "__main__":
                     writer.add_scalar(f'eval/{strategy}/max_td_error', overall_statistics['max_td_error'][0], global_step)
                     writer.add_scalar(f'eval/{strategy}/75th_percentile_td_error', overall_statistics['75th_percentile_td_error'][0], global_step)
 
+                # Evaluate barrier metrics
                 barrier_df = evaluator.evaluate_barrier(q_network, evaluator.sample_grid_points(10000))
                 alphas = np.array([0.25, 0.5, 0.9])
                 barrier_validity = evaluator.calculate_validity(barrier_df, alphas)
@@ -250,6 +251,19 @@ if __name__ == "__main__":
                     writer.add_scalar(f'eval/barrier/validity_alpha_{alpha}', validity, global_step)
                 barrier_coverage = evaluator.calculate_coverage(barrier_df)
                 writer.add_scalar('eval/barrier/coverage', barrier_coverage, global_step)
+
+                # Evaluate constrain metrics
+                if args.enable_bump_parametrization:
+                    barrier_threshold = 0
+                else:
+                    barrier_threshold = 0.5 / (1 - args.gamma)
+                constrain_df = evaluator.evaluate_constrain(
+                    q_network, 
+                    barrier_threshold = barrier_threshold,
+                    num_rollouts = 10
+                )
+                mean_episode_length = constrain_df['episode_length'].mean()
+                writer.add_scalar('eval/constrain/mean_episode_length', mean_episode_length, global_step)
 
             if args.viz_frequency > 0 and global_step % args.viz_frequency == 0: 
                 fig = visualizer.visualize(q_network)
@@ -267,18 +281,13 @@ if __name__ == "__main__":
                 f"runs/{run_name}/{args.exp_name}_{strategy}.csv", 
                 base_path=base_path
             )
-        
-        barrier_df = evaluator.evaluate_barrier(q_network, evaluator.sample_grid_points(10000))
-        alphas = np.linspace(0, 1, 100)
-        barrier_validity = evaluator.calculate_validity(barrier_df, alphas)
-        barrier_coverage = evaluator.calculate_coverage(barrier_df)
-        writer.add_scalar('eval/barrier/coverage', barrier_coverage, global_step)
-
-        if args.track:
-            validity_data = [[alpha, validity] for alpha, validity in zip(alphas, barrier_validity)]
-            validity_table = wandb.Table(data=validity_data, columns=["alpha", "validity"])
-            lineplot = wandb.plot.line(validity_table, "alpha", "validity", title="Barrier validity")
-            wandb.log({"final_barrier_validity": lineplot})
+    
+    # Plot barrier validity tradeoff curve
+    if args.track:
+        validity_data = [[alpha, validity] for alpha, validity in zip(alphas, barrier_validity)]
+        validity_table = wandb.Table(data=validity_data, columns=["alpha", "validity"])
+        lineplot = wandb.plot.line(validity_table, "alpha", "validity", title="Barrier validity")
+        wandb.log({"final_barrier_validity": lineplot})
     
     envs.close()
     writer.close()

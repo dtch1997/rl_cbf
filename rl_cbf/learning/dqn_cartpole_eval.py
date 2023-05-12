@@ -8,6 +8,7 @@ import pandas as pd
 import rl_cbf.envs
 from typing import Optional
 from rl_cbf.net.q_network import QNetwork
+from rl_cbf.learning.dqn_cartpole_constrain import evaluate as evaluate_constrain
 
 class DQNCartPoleEvaluator:
 
@@ -114,6 +115,26 @@ class DQNCartPoleEvaluator:
         df = pd.DataFrame(rows)
         return df
     
+    def evaluate_constrain(
+                            self, 
+                            model: QNetwork, 
+                            barrier_threshold: float = 0,
+                            num_rollouts: int = 10,
+                        ) -> pd.DataFrame:
+        """ Return pd.DataFrame of rollout data
+        
+        Each row is 1 episode
+        """
+        rows = []
+        for episode_idx in range(num_rollouts):
+            episode_length = evaluate_constrain(model, self.eval_env)
+            rows.append({
+                'episode': episode_idx,
+                'episode_length': episode_length,
+            })
+        df = pd.DataFrame(rows)
+        return df
+
     def evaluate_barrier(self, model: QNetwork, 
                          initial_states: np.ndarray,
                         ) -> pd.DataFrame:
