@@ -12,9 +12,10 @@ from rl_cbf.net.q_network import QNetwork
 class DQNCartPoleEvaluator:
 
     def __init__(self,
+                 env_id: str = 'DiverseCartPole-v1',
                  capture_video: bool = False,
                  video_path: str = 'eval'):
-        self.eval_env = gym.make('DiverseCartPole-v1')
+        self.eval_env = gym.make(env_id)
         self.capture_video = capture_video
         if self.capture_video:
             self.eval_env = gym.wrappers.RecordVideo(self.eval_env, f'./videos/{video_path}')
@@ -112,6 +113,97 @@ class DQNCartPoleEvaluator:
         df = pd.DataFrame(rows)
         return df
     
+    def evaluate_barrier(self, model: QNetwork, 
+                         initial_states: np.ndarray,
+                        ) -> pd.DataFrame:
+        """ Return pd.DataFrame of rollout data
+        
+        Each row is 1 timestep of 1 rollout
+        """
+        rows = []
+        for episode_idx, initial_state in enumerate(initial_states):
+            for action in range(self.eval_env.action_space.n):
+
+                # Reset the time limit
+                self.eval_env.reset()
+                # Reset DiverseCartPole-v1 to appropriate initial state
+                initial_state = self.eval_env.reset_to(initial_state)
+                state = initial_state
+
+                q_value = model.predict(state)[action]
+                value = model.predict_value(state)
+                barrier_value = model.predict_value(state, apply_sigmoid=False)
+                next_state, reward, done, info = self.eval_env.step(action)
+                next_value = model.predict_value(next_state)
+                next_barrier_value = model.predict_value(next_state, apply_sigmoid=False)
+                td_error = np.abs(q_value - reward - 0.99 * next_value)
+
+                rows.append({
+                    'episode': episode_idx, 
+                    'q_value': q_value,
+                    'value': value,
+                    'barrier_value': barrier_value,
+                    'state': state,
+                    'action': action,
+                    'reward': reward,
+                    'done': done,
+                    'next_state': next_state,
+                    'td_error': td_error,
+                    'next_value': next_value,
+                    'next_barrier_value': next_barrier_value,
+                })
+
+                state = next_state
+
+        df = pd.DataFrame(rows)
+        return df
+    
+    def calculate_accuracy(self, df: pd.DataFrame) -> float:
+        """ Determine whether barrier condition (i) is satisfied """
+        accuracy = 0
+        df = df[['episode', 'barrier_value', 'state']].drop_duplicates(['episode'])
+        state = df['state']
+        state = np.stack(state.to_numpy())
+
+        is_unsafe = self.eval_env.is_done(state)
+        barrier_values = df['barrier_value'].to_numpy()
+        accuracy = (barrier_values[is_unsafe] < 0).mean()       
+        
+        return accuracy
+    
+    def calculate_valid_1(self, df):
+        """ Check whether condition 1 is satisfied """
+        df = df[['episode', 'barrier_value', 'state']].drop_duplicates(['episode'])
+        state = df['state']
+        state = np.stack(state.to_numpy())
+
+        is_unsafe = self.eval_env.is_done(state)
+        is_safe = ~is_unsafe
+        barrier_values = df['barrier_value'].to_numpy()
+        valid_1 = (is_safe | (barrier_values < 0))
+
+        return valid_1
+    
+    def calculate_validity(self, df: pd.DataFrame, alphas: np.ndarray) -> np.ndarray:
+        """ Determine whether barrier condition is satisfied for each point """
+        df = df[['episode', 'barrier_value', 'next_barrier_value', 'state']]
+        valid_1 = self.calculate_valid_1(df)
+
+        barrier_values = df[['episode', 'barrier_value']].drop_duplicates(['episode'])
+        sup_next_barrier_values = df[['episode', 'next_barrier_value']] \
+            .groupby('episode').max()
+
+        df_merged = pd.merge(barrier_values, sup_next_barrier_values, on='episode')  
+
+        validities = np.zeros_like(alphas)
+        for i, one_minus_alpha in enumerate(alphas):
+            valid_2 = (
+                (df_merged['barrier_value'] < 0) | 
+                (df_merged['next_barrier_value'] >= one_minus_alpha * df_merged['barrier_value'])
+            )
+            validities[i] = (valid_1 * valid_2).mean()
+        return validities
+    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -127,6 +219,13 @@ if __name__ == "__main__":
 
     capture_video = (args.video_path != '')
     evaluator = DQNCartPoleEvaluator(capture_video=capture_video, video_path=args.video_path)
+    
+    barrier_df = evaluator.evaluate_barrier(model, evaluator.sample_grid_points(10000))
+    barrier_accuracy = evaluator.calculate_accuracy(barrier_df)
+    barrier_validity = evaluator.calculate_validity(barrier_df, np.linspace(0, 1, 100))
+    
+    print("Barrier accuracy: ", barrier_accuracy)
+    print("Barrier validity: ", barrier_validity)
+    
     df = evaluator.evaluate_grid(model, n_grid_points=10000)
-    print(df['mean_td_errors'])
     df.to_csv(args.results_path, index=False)
