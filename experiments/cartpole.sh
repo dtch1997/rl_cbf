@@ -86,7 +86,7 @@ python rl_cbf/learning/dqn_cartpole_train.py \
   --save-model \
   --total-timesteps 2000000 \
   --exploration-fraction 0.125 \
-  --exp-name bump_supervised_2M \
+  --exp-name bump_supervised_base_2M \
   --capture-video \
   --track \
   --seed $seed \
