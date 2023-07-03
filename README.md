@@ -2,7 +2,7 @@
 
 This is the code for "Value Functions are Control Barrier Functions: Verification of Safe Policies using Control Theory"
 
- * [Project Page](https://rl_cbf.github.io)
+ * [Project Page](https://rl-cbf.github.io)
  * [Paper](https://arxiv.org/abs/2306.04026)
  * [Video](https://youtu.be/WN4LW06-Fn0)
  
