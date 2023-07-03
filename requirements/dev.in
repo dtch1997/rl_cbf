@@ -1,3 +1,7 @@
+pytest
+coverage
+pytest-cov
+flake8
+pytest-flake8
+check-manifest
 pre-commit
-black
-isort
