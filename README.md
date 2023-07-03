@@ -1,4 +1,4 @@
-# Value Functions are Control Barrier Functions: Verification of Safe Policies using Control Theory
+# RL-CBF: Verification of Safe Policies using Control Barrier Functions
 
 This is the code for "Value Functions are Control Barrier Functions: Verification of Safe Policies using Control Theory"
 
