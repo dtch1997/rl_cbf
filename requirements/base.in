@@ -1,0 +1,5 @@
+torch==1.13.1
+wandb
+tensorboard 
+stable_baselines3==1.2.0
+gym==0.23.1
