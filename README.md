@@ -1,5 +1,7 @@
 # RL-CBF: Verification of Safe Policies using Control Barrier Functions
 
+_This paper was awarded Outstanding Paper at [WFVML 2023](https://www.ml-verification.com/)_
+
 This is the code for "Value Functions are Control Barrier Functions: Verification of Safe Policies using Control Theory"
 
  * [Project Page](https://rl-cbf.github.io)
