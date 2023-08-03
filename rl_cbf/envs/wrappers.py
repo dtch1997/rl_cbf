@@ -1,5 +1,6 @@
 import numpy as np
 import gym
+import abc
 
 class DiscretizeWrapper(gym.ObservationWrapper):
     def __init__(self, env, n_bins):

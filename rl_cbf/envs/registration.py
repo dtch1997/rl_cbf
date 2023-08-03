@@ -13,38 +13,3 @@ register(
     max_episode_steps=500,
     reward_threshold=475.0,
 )
-
-register(
-    'CartPoleA-v1',
-    entry_point='rl_cbf.envs.decomposed_cartpole:CartPoleAEnv',
-    max_episode_steps=500,
-    reward_threshold=475.0,
-)
-
-register(
-    'CartPoleB-v1',
-    entry_point='rl_cbf.envs.decomposed_cartpole:CartPoleBEnv',
-    max_episode_steps=500,
-    reward_threshold=475.0,
-)
-
-register(
-    'CartPoleC-v1',
-    entry_point='rl_cbf.envs.decomposed_cartpole:CartPoleCEnv',
-    max_episode_steps=500,
-    reward_threshold=475.0,
-)
-
-register(
-    'CartPoleD-v1',
-    entry_point='rl_cbf.envs.decomposed_cartpole:CartPoleDEnv',
-    max_episode_steps=500,
-    reward_threshold=475.0,
-)
-
-register(
-    'BaseMountainCar-v0',
-    entry_point='rl_cbf.envs.mountaincar:BaseMountainCarEnv',
-    max_episode_steps=200,
-    reward_threshold=-110.0,
-)
