@@ -18,7 +18,7 @@ import torch.nn.functional as F
 import wandb
 
 import rl_cbf.envs  # noqa: F401
-from rl_cbf.envs import reward_wrappers
+from rl_cbf.envs import safety_reward
 
 TensorBatch = List[torch.Tensor]
 
@@ -49,10 +49,13 @@ class TrainConfig:
     normalize_reward: bool = False  # Normalize reward
     # Wandb logging
     project: str = "rl-cbf"
-    group: str = "debug"
-    name: str = "ZeroOneWrap"
-    # Reward relabelling
-    relabel: str = "zero_one"  # zero_one, constant_penalty, or none
+    group: str = "default"
+    name: str = "TD3-BC"
+    # RL-CBF
+    relabel: str = "identity"  # identity, zero_one, constant_penalty
+    # TODO: Implement
+    bounded: bool = False  # If true, use bounded CBF
+    supervised: bool = False  # If true, supervise CBF on unsafe set
 
     def __post_init__(self):
         self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"
@@ -408,6 +411,15 @@ class TD3_BC:
 def train(config: TrainConfig):
     env = gym.make(config.env)
 
+    if config.relabel == "identity":
+        rewarder = safety_reward.IdentityRewarder(env)
+    elif config.relabel == "zero_one":
+        rewarder = safety_reward.ZeroOneRewarder(env)
+    elif config.relabel == "constant_penalty":
+        rewarder = safety_reward.ConstantPenaltyRewarder(env)
+    else:
+        raise ValueError(f"Unknown relabeling method: {config.relabel}")
+
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
@@ -492,6 +504,9 @@ def train(config: TrainConfig):
     evaluations = []
     for t in range(int(config.max_timesteps)):
         batch = replay_buffer.sample(config.batch_size)
+        states, actions, rewards, next_states, dones = batch
+        rewards = rewarder.modify_reward(states, rewards)
+        batch = [states, actions, rewards, next_states, dones]
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
         wandb.log(log_dict, step=trainer.total_it)
@@ -530,15 +545,15 @@ def train(config: TrainConfig):
                 )
 
             wandb.log(
-                {"d4rl_normalized_score": normalized_eval_score},
+                {"eval/mean_d4rl_normalized_score": normalized_eval_score},
                 step=trainer.total_it,
             )
             wandb.log(
-                {"eval_episode_length": eval_episode_length},
+                {"eval/mean_episode_length": eval_episode_length},
                 step=trainer.total_it,
             )
             wandb.log(
-                {"eval_safety_success": eval_safety_success},
+                {"eval/mean_safety_success": eval_safety_success},
                 step=trainer.total_it,
             )
 
