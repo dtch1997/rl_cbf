@@ -9,14 +9,16 @@ echo "Running experiments with seed: $seed"
 
 for env in Safety-ant-medium-v2 Safety-walker2d-medium-v2 Safety-hopper-medium-v2
 do 
-    for relabel in identity zero_one
+    for relabel in identity zero_one constant_0.2 constant_0.8
     do
         python rl_cbf/offline/td3_bc.py \
             --env $env \
             --relabel $relabel \
+            --project rl-cbf \
             --group $group_name \
             --seed $seed \
             --name $env-$relabel-seed=$seed \
-	    --max_timesteps 300000
+    	    --max_timesteps 300000 \
+            --checkpoints_path models
     done
 done
