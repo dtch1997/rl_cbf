@@ -24,10 +24,10 @@ class ZeroOneRewarder(Rewarder):
 
 
 class ConstantPenaltyRewarder(Rewarder):
-    def __init__(self, env: safety_env.SafetyEnv, unsafe_penalty=1.0):
+    def __init__(self, env: safety_env.SafetyEnv, penalty=1.0):
         super().__init__(env)
-        self.unsafe_penalty = unsafe_penalty
+        self.penalty = penalty
 
     def modify_reward(self, state, reward):
         """Penalize unsafe states by unsafe_penalty."""
-        return reward - self.unsafe_penalty * self.env.is_unsafe_th(state)
+        return reward - self.penalty * self.env.is_unsafe_th(state)

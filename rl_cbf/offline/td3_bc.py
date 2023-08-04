@@ -320,6 +320,26 @@ class TD3_BC:
         self.total_it = 0
         self.device = device
 
+    def get_q_value(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
+        q1 = self.critic_1(state, action)
+        q2 = self.critic_2(state, action)
+        return torch.min(q1, q2)
+
+    def get_value(self, state: torch.Tensor) -> torch.Tensor:
+        q1 = self.critic_1(state, self.actor(state))
+        q2 = self.critic_2(state, self.actor(state))
+        return torch.min(q1, q2)
+
+    def set_eval(self):
+        self.actor.eval()
+        self.critic_1.eval()
+        self.critic_2.eval()
+
+    def set_train(self):
+        self.actor.train()
+        self.critic_1.train()
+        self.critic_2.train()
+
     def train(self, batch: TensorBatch) -> Dict[str, float]:
         log_dict = {}
         self.total_it += 1
