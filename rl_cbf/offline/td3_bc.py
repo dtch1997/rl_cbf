@@ -416,7 +416,8 @@ def train(config: TrainConfig):
     elif config.relabel == "zero_one":
         rewarder = safety_reward.ZeroOneRewarder(env)
     elif config.relabel == "constant_penalty":
-        rewarder = safety_reward.ConstantPenaltyRewarder(env)
+        penalty = 0.2 * (env.ref_max_score - env.ref_min_score) / 1000
+        rewarder = safety_reward.ConstantPenaltyRewarder(env, penalty=penalty)
     else:
         raise ValueError(f"Unknown relabeling method: {config.relabel}")
 
