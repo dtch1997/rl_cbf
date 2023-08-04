@@ -19,6 +19,7 @@ import wandb
 
 import rl_cbf.envs  # noqa: F401
 from rl_cbf.envs import safety_reward
+from rl_cbf.utils.torch_utils import *
 
 TensorBatch = List[torch.Tensor]
 
@@ -281,6 +282,22 @@ class Critic(nn.Module):
         return self.net(sa)
 
 
+class BoundingWrapper(nn.Module):
+    def __init__(self, model: nn.Module, bounds: Tuple[float, float]):
+        super().__init__()
+        self.model = model
+        self.bounds = bounds
+
+        sigmoid = nn.Sigmoid()
+        self.sigmoid = sigmoid
+
+    def forward(self, *args) -> torch.Tensor:
+        output = self.model(*args)
+        output = self.sigmoid(output)
+        output = output * (self.bounds[1] - self.bounds[0]) + self.bounds[0]
+        return output
+
+
 class TD3_BC:
     def __init__(
         self,
@@ -298,7 +315,14 @@ class TD3_BC:
         policy_freq: int = 2,
         alpha: float = 2.5,
         device: str = "cpu",
+        bounded: bool = False,
+        supervised: bool = False,
     ):
+        if bounded:
+            bounds = (0, 1 / (1 - discount))
+            critic_1 = BoundingWrapper(critic_1, bounds)
+            critic_2 = BoundingWrapper(critic_2, bounds)
+
         self.actor = actor
         self.actor_target = copy.deepcopy(actor)
         self.actor_optimizer = actor_optimizer
@@ -316,6 +340,8 @@ class TD3_BC:
         self.noise_clip = noise_clip
         self.policy_freq = policy_freq
         self.alpha = alpha
+        self.bounded = bounded
+        self.supervised = supervised
 
         self.total_it = 0
         self.device = device
@@ -326,8 +352,9 @@ class TD3_BC:
         return torch.min(q1, q2)
 
     def get_value(self, state: torch.Tensor) -> torch.Tensor:
-        q1 = self.critic_1(state, self.actor(state))
-        q2 = self.critic_2(state, self.actor(state))
+        action = self.actor(state)
+        q1 = self.critic_1(state, action)
+        q2 = self.critic_2(state, action)
         return torch.min(q1, q2)
 
     def set_eval(self):
@@ -339,6 +366,28 @@ class TD3_BC:
         self.actor.train()
         self.critic_1.train()
         self.critic_2.train()
+
+    def train_supervised(self, batch_supervised: TensorBatch) -> Dict[str, float]:
+        log_dict = {}
+        self.total_it += 1
+
+        sampled_states, is_unsafe = batch_supervised
+        unsafe_states = sampled_states[(is_unsafe == 1.0).squeeze()]
+        value = self.get_value(unsafe_states)
+        value_pred = torch.zeros_like(value)
+        supervised_loss = F.mse_loss(value, value_pred)
+        log_dict["supervised_loss"] = supervised_loss.item()
+
+        # Optimize the actor and critic
+        self.actor_optimizer.zero_grad()
+        self.critic_1_optimizer.zero_grad()
+        self.critic_2_optimizer.zero_grad()
+        supervised_loss.backward()
+        self.actor_optimizer.step()
+        self.critic_1_optimizer.step()
+        self.critic_2_optimizer.step()
+
+        return log_dict
 
     def train(self, batch: TensorBatch) -> Dict[str, float]:
         log_dict = {}
@@ -514,6 +563,8 @@ def train(config: TrainConfig):
         "policy_freq": config.policy_freq,
         # TD3 + BC
         "alpha": config.alpha,
+        "bounded": config.bounded,
+        "supervised": config.supervised,
     }
 
     print("---------------------------------------")
@@ -538,6 +589,16 @@ def train(config: TrainConfig):
         batch = [states, actions, rewards, next_states, dones]
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
+        if trainer.supervised:
+            sampled_states = env.sample_states(config.batch_size)
+            sample_states = torchify(
+                sampled_states, device=config.device, dtype=torch.float32
+            )
+            is_unsafe = env.is_unsafe_th(sample_states)
+            batch_supervised = (sample_states, is_unsafe)
+            supervised_log_dict = trainer.train_supervised(batch_supervised)
+            log_dict.update(supervised_log_dict)
+
         wandb.log(log_dict, step=trainer.total_it)
         # Evaluate episode
         if (t + 1) % config.eval_freq == 0:

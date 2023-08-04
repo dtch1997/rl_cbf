@@ -9,10 +9,21 @@ class SafetyEnv(abc.ABC, gym.Wrapper):
 
     def step(self, action: np.ndarray):
         state, reward, _, info = super().step(action)
-        is_unsafe = self.is_unsafe_th(torch.from_numpy(state)).numpy().item()
+        is_unsafe = self.is_unsafe(state).item()
         # TODO: overwrite the done condition to match is_unsafe_th
         done = is_unsafe
         return state, reward, done, info
+
+    def is_unsafe(self, states: np.ndarray) -> np.ndarray:
+        """Numpy wrapper around is_unsafe_th
+
+        Args:
+            states: (batch_size, state_dim) array of states
+
+        Returns:
+            is_unsafe: (batch_size, 1) float array indicating whether states are unsafe
+        """
+        return self.is_unsafe_th(torch.from_numpy(states)).numpy()
 
     @staticmethod
     @abc.abstractmethod
@@ -37,7 +48,7 @@ class SafetyEnv(abc.ABC, gym.Wrapper):
             states: (n_states, state_dim) array of sampled states
         """
         return np.random.uniform(
-            low=-2.0, high=2.0, size=(n_states, self.observation_space.shape[0])
+            low=-10.0, high=10.0, size=(n_states, self.observation_space.shape[0])
         )
 
 
