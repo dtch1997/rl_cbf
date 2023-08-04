@@ -5,38 +5,92 @@
 #    pip-compile --output-file=requirements/base.txt requirements/base.in
 #
 --extra-index-url https://pypi.ngc.nvidia.com
+--extra-index-url https://download.pytorch.org/whl/cu113
+--find-links https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 --trusted-host pypi.ngc.nvidia.com
 
 absl-py==1.4.0
-    # via tensorboard
-appdirs==1.4.4
-    # via wandb
+    # via
+    #   chex
+    #   distrax
+    #   dm-control
+    #   dm-env
+    #   labmaze
+    #   mujoco
+    #   optax
+    #   tensorboard
+    #   tensorflow-probability
 cachetools==5.3.1
     # via google-auth
 certifi==2023.5.7
     # via
     #   requests
     #   sentry-sdk
+cffi==1.15.1
+    # via mujoco-py
+cfgv==3.3.1
+    # via pre-commit
 charset-normalizer==3.1.0
     # via requests
+chex==0.1.5
+    # via
+    #   -r requirements/base.in
+    #   distrax
+    #   optax
 click==8.1.3
-    # via wandb
+    # via
+    #   d4rl
+    #   wandb
 cloudpickle==2.2.1
     # via
     #   gym
     #   stable-baselines3
+    #   tensorflow-probability
 contourpy==1.1.0
     # via matplotlib
 cycler==0.11.0
     # via matplotlib
+cython==3.0.0
+    # via mujoco-py
+d4rl @ git+https://github.com/Farama-Foundation/d4rl@master
+    # via -r requirements/base.in
+decorator==5.1.1
+    # via tensorflow-probability
+distlib==0.3.7
+    # via virtualenv
+distrax==0.1.2
+    # via -r requirements/base.in
+dm-control==1.0.14
+    # via d4rl
+dm-env==1.6
+    # via dm-control
+dm-tree==0.1.8
+    # via
+    #   chex
+    #   dm-control
+    #   dm-env
+    #   tensorflow-probability
 docker-pycreds==0.4.0
     # via wandb
+fasteners==0.18
+    # via mujoco-py
+filelock==3.12.2
+    # via virtualenv
+flax==0.6.1
+    # via -r requirements/base.in
 fonttools==4.40.0
     # via matplotlib
+gast==0.5.4
+    # via tensorflow-probability
 gitdb==4.0.10
     # via gitpython
 gitpython==3.1.31
     # via wandb
+glfw==2.6.2
+    # via
+    #   dm-control
+    #   mujoco
+    #   mujoco-py
 google-auth==2.21.0
     # via
     #   google-auth-oauthlib
@@ -45,42 +99,100 @@ google-auth-oauthlib==1.0.0
     # via tensorboard
 grpcio==1.56.0
     # via tensorboard
-gym[classic_control]==0.23.1
+gym[classic_control,mujoco_py]==0.23.0
     # via
     #   -r requirements/base.in
+    #   d4rl
     #   stable-baselines3
 gym-notices==0.0.8
     # via gym
+h5py==3.9.0
+    # via d4rl
+identify==2.5.26
+    # via pre-commit
 idna==3.4
     # via requests
+imageio==2.31.1
+    # via mujoco-py
+jax==0.4.1
+    # via
+    #   -r requirements/base.in
+    #   chex
+    #   distrax
+    #   flax
+    #   optax
+jaxlib[cuda11_cudnn82]==0.4.1+cuda11.cudnn86
+    # via
+    #   -r requirements/base.in
+    #   chex
+    #   distrax
+    #   optax
 kiwisolver==1.4.4
     # via matplotlib
+labmaze==1.0.6
+    # via dm-control
+lxml==4.9.3
+    # via dm-control
 markdown==3.4.3
     # via tensorboard
+markdown-it-py==3.0.0
+    # via rich
 markupsafe==2.1.3
     # via werkzeug
 matplotlib==3.7.1
-    # via stable-baselines3
-numpy==1.25.0
     # via
+    #   flax
+    #   stable-baselines3
+mdurl==0.1.2
+    # via markdown-it-py
+mjrl @ git+https://github.com/aravindr93/mjrl@master
+    # via d4rl
+msgpack==1.0.5
+    # via flax
+mujoco==2.3.7
+    # via dm-control
+mujoco-py==2.1.2.14
+    # via
+    #   -r requirements/base.in
+    #   d4rl
+mypy-extensions==1.0.0
+    # via typing-inspect
+nodeenv==1.8.0
+    # via pre-commit
+numpy==1.23.1
+    # via
+    #   -r requirements/base.in
+    #   chex
     #   contourpy
+    #   d4rl
+    #   distrax
+    #   dm-control
+    #   dm-env
+    #   flax
     #   gym
+    #   h5py
+    #   imageio
+    #   jax
+    #   jaxlib
+    #   labmaze
     #   matplotlib
+    #   mujoco
+    #   mujoco-py
+    #   opt-einsum
+    #   optax
     #   pandas
+    #   scipy
     #   stable-baselines3
     #   tensorboard
-nvidia-cublas-cu11==11.10.3.66
-    # via
-    #   nvidia-cudnn-cu11
-    #   torch
-nvidia-cuda-nvrtc-cu11==11.7.99
-    # via torch
-nvidia-cuda-runtime-cu11==11.7.99
-    # via torch
-nvidia-cudnn-cu11==8.5.0.96
-    # via torch
+    #   tensorflow-probability
 oauthlib==3.2.2
     # via requests-oauthlib
+opt-einsum==3.3.0
+    # via jax
+optax==0.1.3
+    # via
+    #   -r requirements/base.in
+    #   flax
 packaging==23.1
     # via matplotlib
 pandas==2.0.3
@@ -88,9 +200,18 @@ pandas==2.0.3
 pathtools==0.1.2
     # via wandb
 pillow==10.0.0
-    # via matplotlib
-protobuf==4.23.3
     # via
+    #   imageio
+    #   matplotlib
+platformdirs==3.10.0
+    # via virtualenv
+pre-commit==3.3.3
+    # via -r requirements/base.in
+promise==2.3
+    # via wandb
+protobuf==3.20.3
+    # via
+    #   dm-control
     #   tensorboard
     #   wandb
 psutil==5.9.5
@@ -101,10 +222,24 @@ pyasn1==0.5.0
     #   rsa
 pyasn1-modules==0.3.0
     # via google-auth
+pybullet==3.2.5
+    # via d4rl
+pycparser==2.21
+    # via cffi
 pygame==2.1.0
     # via gym
+pygments==2.15.1
+    # via rich
+pyopengl==3.1.7
+    # via
+    #   dm-control
+    #   mujoco
 pyparsing==3.1.0
-    # via matplotlib
+    # via
+    #   dm-control
+    #   matplotlib
+pyrallis==0.3.1
+    # via -r requirements/base.in
 python-dateutil==2.8.2
     # via
     #   matplotlib
@@ -112,25 +247,44 @@ python-dateutil==2.8.2
 pytz==2023.3
     # via pandas
 pyyaml==6.0
-    # via wandb
+    # via
+    #   flax
+    #   pre-commit
+    #   pyrallis
+    #   wandb
 requests==2.31.0
     # via
+    #   dm-control
     #   requests-oauthlib
     #   tensorboard
     #   wandb
 requests-oauthlib==1.3.1
     # via google-auth-oauthlib
+rich==13.5.2
+    # via flax
 rsa==4.9
     # via google-auth
+ruff==0.0.278
+    # via -r requirements/base.in
+scipy==1.11.1
+    # via
+    #   dm-control
+    #   jax
+    #   jaxlib
 sentry-sdk==1.26.0
     # via wandb
 setproctitle==1.3.2
+    # via wandb
+shortuuid==1.0.11
     # via wandb
 six==1.16.0
     # via
     #   docker-pycreds
     #   google-auth
+    #   promise
     #   python-dateutil
+    #   tensorflow-probability
+    #   wandb
 smmap==5.0.0
     # via gitdb
 stable-baselines3==1.2.0
@@ -139,12 +293,28 @@ tensorboard==2.13.0
     # via -r requirements/base.in
 tensorboard-data-server==0.7.1
     # via tensorboard
-torch==1.13.1
+tensorflow-probability==0.20.1
+    # via distrax
+termcolor==2.3.0
+    # via d4rl
+toolz==0.12.0
+    # via chex
+torch==1.11.0+cu113
     # via
     #   -r requirements/base.in
     #   stable-baselines3
+tqdm==4.64.0
+    # via
+    #   -r requirements/base.in
+    #   dm-control
 typing-extensions==4.7.1
-    # via torch
+    # via
+    #   flax
+    #   optax
+    #   torch
+    #   typing-inspect
+typing-inspect==0.9.0
+    # via pyrallis
 tzdata==2023.3
     # via pandas
 urllib3==1.26.16
@@ -152,15 +322,14 @@ urllib3==1.26.16
     #   google-auth
     #   requests
     #   sentry-sdk
-wandb==0.15.4
+virtualenv==20.24.2
+    # via pre-commit
+wandb==0.12.21
     # via -r requirements/base.in
 werkzeug==2.3.6
     # via tensorboard
 wheel==0.40.0
-    # via
-    #   nvidia-cublas-cu11
-    #   nvidia-cuda-runtime-cu11
-    #   tensorboard
+    # via tensorboard
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
