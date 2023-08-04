@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from gym.envs.classic_control import CartPoleEnv
+
 from rl_cbf.envs.decomposed_cartpole import BaseCartPole
 
 class TestDecomposedCartPole(unittest.TestCase):
