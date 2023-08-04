@@ -17,6 +17,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import wandb
 
+import rl_cbf.envs  # noqa: F401
+from rl_cbf.envs import reward_wrappers
+
 TensorBatch = List[torch.Tensor]
 
 
@@ -24,7 +27,7 @@ TensorBatch = List[torch.Tensor]
 class TrainConfig:
     # Experiment
     device: str = "cuda"
-    env: str = "walker2d-medium-v2"  # OpenAI gym environment name
+    env: str = "Safety-walker2d-medium-v2"  # OpenAI gym environment name
     seed: int = 0  # Sets Gym, PyTorch and Numpy seeds
     eval_freq: int = int(5e3)  # How often (time steps) we evaluate
     n_episodes: int = 10  # How many episodes run during evaluation
@@ -45,9 +48,11 @@ class TrainConfig:
     normalize: bool = True  # Normalize states
     normalize_reward: bool = False  # Normalize reward
     # Wandb logging
-    project: str = "CORL"
-    group: str = "TD3_BC-D4RL"
-    name: str = "TD3_BC"
+    project: str = "rl-cbf"
+    group: str = "debug"
+    name: str = "ZeroOneWrap"
+    # Reward relabelling
+    relabel: str = "zero_one"  # zero_one, constant_penalty, or none
 
     def __post_init__(self):
         self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"
@@ -187,17 +192,25 @@ def eval_actor(
     env.seed(seed)
     actor.eval()
     episode_rewards = []
+    episode_lengths = []
+
     for _ in range(n_episodes):
         state, done = env.reset(), False
         episode_reward = 0.0
+        episode_length = 0
         while not done:
             action = actor.act(state, device)
-            state, reward, done, _ = env.step(action)
+            state, reward, done, info = env.step(action)
             episode_reward += reward
+            episode_length += 1
         episode_rewards.append(episode_reward)
+        episode_lengths.append(episode_length)
 
     actor.train()
-    return np.asarray(episode_rewards)
+    return {
+        "episode_rewards": np.asarray(episode_rewards),
+        "episode_lengths": np.asarray(episode_lengths),
+    }
 
 
 def return_reward_range(dataset, max_episode_steps):
@@ -485,20 +498,28 @@ def train(config: TrainConfig):
         # Evaluate episode
         if (t + 1) % config.eval_freq == 0:
             print(f"Time steps: {t + 1}")
-            eval_scores = eval_actor(
+            eval_dict = eval_actor(
                 env,
                 actor,
                 device=config.device,
                 n_episodes=config.n_episodes,
                 seed=config.seed,
             )
+            eval_scores = eval_dict["episode_rewards"]
             eval_score = eval_scores.mean()
+            eval_episode_lengths = eval_dict["episode_lengths"]
+            eval_episode_length = eval_episode_lengths.mean()
+            # TODO: avoid hardcoding this
+            # Works for Ant, HalfCheetah, Hopper, Walker2d
+            eval_safety_success = (eval_episode_lengths == 1000).mean()
             normalized_eval_score = env.get_normalized_score(eval_score) * 100.0
             evaluations.append(normalized_eval_score)
             print("---------------------------------------")
             print(
                 f"Evaluation over {config.n_episodes} episodes: "
                 f"{eval_score:.3f} , D4RL score: {normalized_eval_score:.3f}"
+                f" , Episode length: {eval_episode_length:.3f}"
+                f" , Safety success: {eval_safety_success:.3f}"
             )
             print("---------------------------------------")
 
@@ -510,6 +531,14 @@ def train(config: TrainConfig):
 
             wandb.log(
                 {"d4rl_normalized_score": normalized_eval_score},
+                step=trainer.total_it,
+            )
+            wandb.log(
+                {"eval_episode_length": eval_episode_length},
+                step=trainer.total_it,
+            )
+            wandb.log(
+                {"eval_safety_success": eval_safety_success},
                 step=trainer.total_it,
             )
 
