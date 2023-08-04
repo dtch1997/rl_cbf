@@ -4,8 +4,15 @@ import abc
 import torch
 
 
-class SafetyEnv(abc.ABC, gym.Env):
+class SafetyEnv(abc.ABC, gym.Wrapper):
     """TODO: write safety env interface"""
+
+    def step(self, action: np.ndarray):
+        state, reward, _, info = super().step(action)
+        is_unsafe = self.is_unsafe_th(torch.from_numpy(state)).numpy().item()
+        # TODO: overwrite the done condition to match is_unsafe_th
+        done = is_unsafe
+        return state, reward, done, info
 
     @staticmethod
     @abc.abstractmethod
@@ -20,8 +27,21 @@ class SafetyEnv(abc.ABC, gym.Env):
         """
         raise NotImplementedError
 
+    def sample_states(self, n_states: int) -> np.ndarray:
+        """Sample n_states from the environment
 
-class SafetyWalker2dEnv(SafetyEnv, gym.Wrapper):
+        Args:
+            n_states: number of states to sample
+
+        Returns:
+            states: (n_states, state_dim) array of sampled states
+        """
+        return np.random.uniform(
+            low=-2.0, high=2.0, size=(n_states, self.observation_space.shape[0])
+        )
+
+
+class SafetyWalker2dEnv(SafetyEnv):
     def __init__(self, env_id: str = "Walker2d-v3"):
         env = gym.make(env_id)
         super().__init__(env)
@@ -36,18 +56,13 @@ class SafetyWalker2dEnv(SafetyEnv, gym.Wrapper):
         is_safe = torch.logical_and(height_ok, angle_ok)
         return (~is_safe).float().view(-1, 1)
 
-    @staticmethod
-    def sample_states(n_states: int):
-        states = np.random.uniform(low=-2.0, high=2.0, size=((n_states, 17)))
-        return states
-
     def reset_to(self, state: np.ndarray):
         new_state = self.reset()
         # TODO: implement this
         return new_state
 
 
-class SafetyAntEnv(SafetyEnv, gym.Wrapper):
+class SafetyAntEnv(SafetyEnv):
     def __init__(self, env_id: str = "Ant-v3"):
         env = gym.make(env_id)
         super().__init__(env)
@@ -59,7 +74,7 @@ class SafetyAntEnv(SafetyEnv, gym.Wrapper):
         return (~is_safe).float().view(-1, 1)
 
 
-class SafetyHopperEnv(SafetyEnv, gym.Wrapper):
+class SafetyHopperEnv(SafetyEnv):
     def __init__(self, env_id: str = "Hopper-v3"):
         env = gym.make(env_id)
         super().__init__(env)
