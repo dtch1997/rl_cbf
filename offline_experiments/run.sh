@@ -16,6 +16,7 @@ do
             --relabel $relabel \
             --group $group_name \
             --seed $seed \
-            --name $env-$relabel-seed=$seed
+            --name $env-$relabel-seed=$seed \
+	    --max_timesteps 300000
     done
 done
