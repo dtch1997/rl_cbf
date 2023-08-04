@@ -456,6 +456,11 @@ def train(config: TrainConfig):
         with open(os.path.join(config.checkpoints_path, "config.yaml"), "w") as f:
             pyrallis.dump(config, f)
 
+        # Save state mean, state std
+        env_type = config.env.split("-")[1]  # Safety-{env_type}-{etc}
+        np.save(f"rl_cbf/data/{env_type}_state_mean.npy", state_mean)
+        np.save(f"rl_cbf/data/{env_type}_state_std.npy", state_std)
+
     # Set seeds
     seed = config.seed
     set_seed(seed, env)
@@ -556,6 +561,12 @@ def train(config: TrainConfig):
                 {"eval/mean_safety_success": eval_safety_success},
                 step=trainer.total_it,
             )
+
+    if config.checkpoints_path is not None:
+        # save final model
+        path = os.path.join(config.checkpoints_path, f"final.pt")
+        torch.save(trainer.state_dict(), path)
+        wandb.save(path, base_path=config.checkpoints_path)
 
 
 if __name__ == "__main__":
