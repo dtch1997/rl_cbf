@@ -39,6 +39,14 @@ register(
 )
 
 register(
+    "Safety-walker2d-medium-replay-v2",
+    entry_point="rl_cbf.envs.safety_env:SafetyWalker2dEnv",
+    kwargs={"env_id": "walker2d-medium-replay-v2"},
+    max_episode_steps=1000,
+    reward_threshold=950.0,
+)
+
+register(
     "Safety-ant-medium-v2",
     entry_point="rl_cbf.envs.safety_env:SafetyAntEnv",
     kwargs={"env_id": "ant-medium-v2"},
