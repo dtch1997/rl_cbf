@@ -15,7 +15,7 @@ do
         do 
             for supervised in True False 
             do 
-                python rl_cbf/offline/td3_bc.py \
+                python rl_cbf/offline/td3_bc_train.py \
                     --env $env \
                     --relabel $relabel \
                     --project rl-cbf \

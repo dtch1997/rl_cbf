@@ -18,7 +18,7 @@ do
             options="--bounded False --supervised False --detach_actor False"
         fi
         
-        python rl_cbf/offline/td3_bc.py \
+        python rl_cbf/offline/td3_bc_train.py \
             --env $env \
             --relabel $relabel \
             --project rl-cbf \
