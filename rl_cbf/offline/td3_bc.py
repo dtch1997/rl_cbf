@@ -127,6 +127,9 @@ class ReplayBuffer:
             (buffer_size, state_dim), dtype=torch.float32, device=device
         )
         self._dones = torch.zeros((buffer_size, 1), dtype=torch.float32, device=device)
+        self._assumed_safety = torch.zeros(
+            (buffer_size, 1), dtype=torch.long, device=device
+        )
         self._device = device
 
     def _to_tensor(self, data: np.ndarray) -> torch.Tensor:
@@ -146,6 +149,10 @@ class ReplayBuffer:
         self._rewards[:n_transitions] = self._to_tensor(data["rewards"][..., None])
         self._next_states[:n_transitions] = self._to_tensor(data["next_observations"])
         self._dones[:n_transitions] = self._to_tensor(data["terminals"][..., None])
+        if "is_assumed_safe" in data:
+            self._assumed_safety[:n_transitions] = self._to_tensor(
+                data["is_assumed_safe"][..., None]
+            )
         self._size += n_transitions
         self._pointer = min(self._size, n_transitions)
 
@@ -157,8 +164,9 @@ class ReplayBuffer:
         actions = self._actions[indices]
         rewards = self._rewards[indices]
         next_states = self._next_states[indices]
+        assumed_safety = self._assumed_safety[indices]
         dones = self._dones[indices]
-        return [states, actions, rewards, next_states, dones]
+        return [states, actions, rewards, next_states, dones, assumed_safety]
 
     def add_transition(self):
         # Use this method to add new data into the replay buffer during fine-tuning.
@@ -402,7 +410,7 @@ class TD3_BC:
         log_dict = {}
         self.total_it += 1
 
-        state, action, reward, next_state, done = batch
+        state, action, reward, next_state, done, assumed_safe = batch
         not_done = 1 - done
 
         with torch.no_grad():
@@ -426,10 +434,16 @@ class TD3_BC:
         current_q2 = self.critic_2(state, action)
 
         # Compute critic loss
-        critic_loss = F.mse_loss(current_q1, target_q) + F.mse_loss(
-            current_q2, target_q
-        )
-        log_dict["critic_loss"] = critic_loss.item()
+        td_loss = F.mse_loss(current_q1, target_q) + F.mse_loss(current_q2, target_q)
+
+        safety_value = self.get_value(state)[assumed_safe]
+        safety_value_pred = 1 / (1 - self.discount) * torch.ones_like(safety_value)
+        safety_loss = F.mse_loss(safety_value, safety_value_pred)
+
+        log_dict["safety_loss"] = safety_loss.item()
+        log_dict["td_loss"] = td_loss.item()
+        critic_loss = td_loss + safety_loss
+
         log_dict["critic_target"] = target_q.mean().item()
         # Optimize the critic
         self.critic_1_optimizer.zero_grad()

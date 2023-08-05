@@ -1,5 +1,6 @@
 from td3_bc import *
 from td3_bc_eval import eval_cbf, compute_metrics
+from preprocess_dataset import parse_dataset_safety
 
 
 @pyrallis.wrap()
@@ -23,6 +24,9 @@ def train(config: TrainConfig):
     action_dim = env.action_space.shape[0]
 
     dataset = d4rl.qlearning_dataset(env)
+    # Add the assumed safety labels to dataset
+    # TODO: avoid hardcoding horizon
+    dataset = parse_dataset_safety(dataset, H=20)
 
     if config.normalize_reward:
         modify_reward(dataset, config.env)
@@ -113,9 +117,9 @@ def train(config: TrainConfig):
         batch = replay_buffer.sample(config.batch_size)
 
         # Modify the reward
-        states, actions, rewards, next_states, dones = batch
+        states, actions, rewards, next_states, dones, assumed_safety = batch
         rewards = rewarder.modify_reward(states, rewards)
-        batch = [states, actions, rewards, next_states, dones]
+        batch = [states, actions, rewards, next_states, dones, assumed_safety]
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
 
