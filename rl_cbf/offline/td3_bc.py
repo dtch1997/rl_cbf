@@ -349,6 +349,10 @@ class TD3_BC:
         self.total_it = 0
         self.device = device
 
+    def get_safety_threshold(self):
+        """Return the safety threshold for the current discount factor."""
+        return 0.5 / (1 - self.discount)
+
     def get_q_value(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         q1 = self.critic_1(state, action)
         q2 = self.critic_2(state, action)

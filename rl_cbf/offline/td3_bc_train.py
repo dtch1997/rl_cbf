@@ -1,5 +1,5 @@
 from td3_bc import *
-from td3_bc_eval import eval_cbf
+from td3_bc_eval import eval_cbf, compute_metrics
 
 
 @pyrallis.wrap()
@@ -166,15 +166,11 @@ def train(config: TrainConfig):
                 )
 
             wandb.log(
-                {"eval/mean_d4rl_normalized_score": normalized_eval_score},
-                step=trainer.total_it,
-            )
-            wandb.log(
-                {"eval/mean_episode_length": eval_episode_length},
-                step=trainer.total_it,
-            )
-            wandb.log(
-                {"eval/mean_safety_success": eval_safety_success},
+                {
+                    "eval/mean_d4rl_normalized_score": normalized_eval_score,
+                    "eval/mean_episode_length": eval_episode_length,
+                    "eval/mean_safety_success": eval_safety_success,
+                },
                 step=trainer.total_it,
             )
 
@@ -200,16 +196,25 @@ def train(config: TrainConfig):
 
             wandb.log(
                 {
-                    "cbf/mean_constrained_episode_length": constrained_episode_length.mean()
+                    "cbf/mean_constrained_episode_length": constrained_episode_length.mean(),
+                    "cbf/mean_constrained_safety_success": constrained_safety_success.mean(),
+                    "cbf/mean_value": cbf_eval_dict["value_mean"],
                 },
                 step=trainer.total_it,
             )
-            wandb.log(
-                {
-                    "cbf/mean_constrained_safety_success": constrained_safety_success.mean()
-                },
-                step=trainer.total_it,
+
+            # Evaluate the CBF metrics
+            metrics = compute_metrics(
+                env,
+                trainer,
+                device=config.device,
+                dataset=replay_buffer,
             )
+            print("---------------------------------------")
+            print(f"CBF metrics: {metrics}")
+            print("---------------------------------------")
+            for key, value in metrics.items():
+                wandb.log({f"cbf/{key}": value}, step=trainer.total_it)
 
     if config.checkpoints_path is not None:
         # save final model
