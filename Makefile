@@ -1,5 +1,7 @@
+PYTHON?=python
+
 .venv:
-	python -m venv .venv
+	$(PYTHON) -m venv .venv
 	.venv/bin/python -m pip install --upgrade setuptools pip
 	.venv/bin/python -m pip install pip-tools
 	touch .venv
