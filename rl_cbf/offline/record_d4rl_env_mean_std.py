@@ -3,7 +3,7 @@ import numpy as np
 import pyrallis
 import d4rl
 
-from td3_bc import TrainConfig, compute_mean_std
+from rl_cbf.offline.td3_bc import TrainConfig, compute_mean_std
 
 
 @pyrallis.wrap()

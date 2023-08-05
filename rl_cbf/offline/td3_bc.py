@@ -56,7 +56,8 @@ class TrainConfig:
     relabel: str = "identity"  # identity, zero_one, constant_penalty
     # TODO: Implement
     bounded: bool = False  # If true, use bounded CBF
-    supervised: bool = False  # If true, supervise CBF on unsafe set
+    safe_supervised: bool = False  # If true, supervise CBF on assumed safe states
+    unsafe_supervised: bool = False  # If true, supervise CBF on unsafe set
     detach_actor: bool = False  # If true, freeze actor during supervised training
 
     def __post_init__(self):
@@ -325,7 +326,8 @@ class TD3_BC:
         alpha: float = 2.5,
         device: str = "cpu",
         bounded: bool = False,
-        supervised: bool = False,
+        safe_supervised: bool = False,
+        unsafe_supervised: bool = False,
         detach_actor: bool = False,
     ):
         if bounded:
@@ -351,7 +353,8 @@ class TD3_BC:
         self.policy_freq = policy_freq
         self.alpha = alpha
         self.bounded = bounded
-        self.supervised = supervised
+        self.safe_supervised = safe_supervised
+        self.unsafe_supervised = unsafe_supervised
         self.detach_actor = detach_actor
 
         self.total_it = 0
@@ -433,16 +436,20 @@ class TD3_BC:
         current_q1 = self.critic_1(state, action)
         current_q2 = self.critic_2(state, action)
 
-        # Compute critic loss
+        critic_loss = 0
+
+        # Compute td loss
         td_loss = F.mse_loss(current_q1, target_q) + F.mse_loss(current_q2, target_q)
-
-        safety_value = self.get_value(state)[assumed_safe]
-        safety_value_pred = 1 / (1 - self.discount) * torch.ones_like(safety_value)
-        safety_loss = F.mse_loss(safety_value, safety_value_pred)
-
-        log_dict["safety_loss"] = safety_loss.item()
         log_dict["td_loss"] = td_loss.item()
-        critic_loss = td_loss + safety_loss
+        critic_loss += td_loss
+
+        # Optionally compute safe supervision loss
+        if self.safe_supervised:
+            safety_value = self.get_value(state)[assumed_safe]
+            safety_value_pred = 1 / (1 - self.discount) * torch.ones_like(safety_value)
+            safety_loss = F.mse_loss(safety_value, safety_value_pred)
+            log_dict["safety_loss"] = safety_loss.item()
+            critic_loss += safety_loss
 
         log_dict["critic_target"] = target_q.mean().item()
         # Optimize the critic

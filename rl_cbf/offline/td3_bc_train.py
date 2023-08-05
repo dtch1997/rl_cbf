@@ -94,7 +94,8 @@ def train(config: TrainConfig):
         # TD3 + BC
         "alpha": config.alpha,
         "bounded": config.bounded,
-        "supervised": config.supervised,
+        "safe_supervised": config.safe_supervised,
+        "unsafe_supervised": config.unsafe_supervised,
         "detach_actor": config.detach_actor,
     }
 
@@ -123,8 +124,8 @@ def train(config: TrainConfig):
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
 
-        # Optionally apply supervised loss
-        if trainer.supervised:
+        # Optionally apply unsafe supervised loss
+        if trainer.unsafe_supervised:
             sampled_states = env.sample_states(config.batch_size)
             sample_states = torchify(
                 sampled_states, device=config.device, dtype=torch.float32
