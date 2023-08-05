@@ -18,7 +18,7 @@ do
             --group $group_name \
             --seed $seed \
             --name $env-$relabel-seed=$seed \
-    	    --max_timesteps 300000 \
+    	    --max_timesteps 150000 \
             --checkpoints_path models
     done
 done

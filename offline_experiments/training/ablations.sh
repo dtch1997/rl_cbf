@@ -7,9 +7,9 @@ group_name=${2:-'d4rl_cbf'}
 
 echo "Running experiments with seed: $seed"
 
-for env in Safety-ant-medium-v2 Safety-walker2d-medium-v2 Safety-hopper-medium-v2
+for env in Safety-walker2d-medium-v2 # Safety-ant-medium-v2 Safety-hopper-medium-v2
 do 
-    for relabel in identity zero_one constant_0.2 constant_0.8
+    for relabel in zero_one # identity constant_0.2 constant_0.8
     do
         for bounded in True False 
         do 
