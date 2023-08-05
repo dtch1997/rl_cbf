@@ -3,6 +3,55 @@
 from rl_cbf.offline.td3_bc import *
 
 
+def parse_episode(
+    state_buffer: np.ndarray, action_buffer: np.ndarray, H: int = 20
+) -> np.ndarray:
+    """
+    Parse an episode into safe and unsafe states
+    """
+
+    terminal_state = state_buffer[-1].view(1, -1)
+    # Here we make use of the finite irrecoverability assumption
+    # which implies that any state at least H steps before terminal is safe
+    assumed_safe_states = state_buffer[: -H - 1]
+    return assumed_safe_states, terminal_state
+
+
+def compute_metrics(
+    env: gym.Env,
+    model: TD3_BC,
+    device: str,
+    dataset: ReplayBuffer,
+    n_samples: int = 1024,
+    alpha: float = 0.1,
+) -> Dict[str, float]:
+    """
+    Compute the validity of the CBF
+    """
+    safety_threshold = 0.5 / (1 - model.discount)
+    batch = dataset.sample(n_samples)
+    states, actions, rewards, next_states, dones = batch
+
+    # Q(s, pi(s)) is a variational approximation of max_a(Q(s, a))
+    values = model.get_value(states)
+    next_values = model.get_value(next_states)
+
+    # Check validity of CBF
+    is_unsafe = env.is_unsafe_th(states)
+    cbf_error_i = (is_unsafe == 1) & (values > 0.0)
+    cbf_error_ii = (values >= safety_threshold) & (next_values < (1 - alpha) * values)
+    cbf_error = cbf_error_i | cbf_error_ii
+    cbf_validity = 1.0 - cbf_error.float().mean().item()
+
+    # Check coverage of CBF
+    cbf_coverage = (values >= safety_threshold).float().mean().item()
+
+    return {
+        "cbf_validity": cbf_validity,
+        "cbf_coverage": cbf_coverage,
+    }
+
+
 @torch.no_grad()
 def eval_cbf(
     env: gym.Env, model: TD3_BC, device: str, n_episodes: int, seed: int
@@ -16,27 +65,47 @@ def eval_cbf(
     model.set_eval()
     episode_rewards = []
     episode_lengths = []
-
+    values = []
     for _ in range(n_episodes):
+
+        # Reset env
         state, done = env.reset(), False
         episode_reward = 0.0
         episode_length = 0
+
+        # Initialize episode buffer
+        episode_state_buffer = np.zeros((1001, env.observation_space.shape[0]))
+        episode_action_buffer = np.zeros((1000, env.action_space.shape[0]))
+        episode_state_buffer[0] = state
+
         while not done:
-            # Take random action
+            # Select random action
             action = env.action_space.sample()
-            # Apply safety constraint
+
+            # Apply safety constraint;
             state_th = torch.from_numpy(state).float().to(device).view(1, -1)
             action_th = torch.from_numpy(action).float().to(device).view(1, -1)
-            next_q_value = model.get_q_value(state_th, action_th)
-            if next_q_value < 0.5 / (1 - model.discount):
+            q_value_random = model.get_q_value(state_th, action_th)
+            value = model.get_value(state_th)
+            if q_value_random < 0.5 / (1 - model.discount):
                 # Unsafe; take action that maximizes Q-value
                 action = model.actor.act(state, device)
+
+            # Step the environment
             state, reward, done, info = env.step(action)
-            env.render()
+            # env.render()
+
+            # Record data
             episode_reward += reward
             episode_length += 1
+            episode_state_buffer[episode_length] = state
+            episode_action_buffer[episode_length - 1] = action
+            values.append(value.item())
+
         episode_rewards.append(episode_reward)
         episode_lengths.append(episode_length)
+        episode_state_buffer = episode_state_buffer[: episode_length + 1]
+        episode_action_buffer = episode_action_buffer[:episode_length]
 
     episode_safety_successes = np.asarray(episode_lengths) == 1000
     model.set_train()
@@ -45,6 +114,7 @@ def eval_cbf(
         "episode_rewards": np.asarray(episode_rewards),
         "episode_lengths": np.asarray(episode_lengths),
         "episode_safety_successes": np.asarray(episode_safety_successes),
+        "value_mean": np.mean(values),
     }
 
 
