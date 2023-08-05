@@ -30,25 +30,29 @@ def compute_metrics(
     """
     safety_threshold = 0.5 / (1 - model.discount)
     batch = dataset.sample(n_samples)
-    states, actions, rewards, next_states, dones = batch
+    states, actions, rewards, next_states, dones, assumed_safety = batch
 
     # Q(s, pi(s)) is a variational approximation of max_a(Q(s, a))
     values = model.get_value(states)
     next_values = model.get_value(next_states)
+    cbf_values = values - safety_threshold
+    next_cbf_values = next_values - safety_threshold
 
     # Check validity of CBF
-    is_unsafe = env.is_unsafe_th(states)
-    cbf_error_i = (is_unsafe == 1) & (values > 0.0)
-    cbf_error_ii = (values >= safety_threshold) & (next_values < (1 - alpha) * values)
+    is_unsafe = dones
+    cbf_error_i = (is_unsafe == 1) & (cbf_values >= 0)
+    cbf_error_ii = (cbf_values >= 0) & (next_cbf_values < (1 - alpha) * cbf_values)
     cbf_error = cbf_error_i | cbf_error_ii
     cbf_validity = 1.0 - cbf_error.float().mean().item()
 
     # Check coverage of CBF
-    cbf_coverage = (values >= safety_threshold).float().mean().item()
+    cbf_coverage = (cbf_values >= 0).float().mean().item()
 
     return {
         "cbf_validity": cbf_validity,
         "cbf_coverage": cbf_coverage,
+        "cbf_error_i": cbf_error_i.float().mean().item(),
+        "cbf_error_ii": cbf_error_ii.float().mean().item(),
     }
 
 
@@ -63,6 +67,7 @@ def eval_cbf(
 
     env.seed(seed)
     model.set_eval()
+    safety_threshold = 0.5 / (1 - model.discount)
     episode_rewards = []
     episode_lengths = []
     values = []
@@ -87,7 +92,9 @@ def eval_cbf(
             action_th = torch.from_numpy(action).float().to(device).view(1, -1)
             q_value_random = model.get_q_value(state_th, action_th)
             value = model.get_value(state_th)
-            if q_value_random < 0.5 / (1 - model.discount):
+            # print("q_value_random", q_value_random)
+            # print("value", value)
+            if q_value_random < safety_threshold:
                 # Unsafe; take action that maximizes Q-value
                 action = model.actor.act(state, device)
 
@@ -198,6 +205,9 @@ def eval(config: TrainConfig):
         "policy_freq": config.policy_freq,
         # TD3 + BC
         "alpha": config.alpha,
+        "bounded": config.bounded,
+        "supervised": config.supervised,
+        "detach_actor": config.detach_actor,
     }
 
     print("---------------------------------------")
