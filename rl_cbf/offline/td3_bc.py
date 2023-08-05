@@ -603,8 +603,6 @@ def train(config: TrainConfig):
             supervised_log_dict = trainer.train_supervised(batch_supervised)
             log_dict.update(supervised_log_dict)
 
-        print(log_dict.keys())
-
         wandb.log(log_dict, step=trainer.total_it)
         # Evaluate episode
         if (t + 1) % config.eval_freq == 0:
