@@ -7,10 +7,17 @@ group_name=${2:-'d4rl_cbf'}
 
 echo "Running experiments with seed: $seed"
 
-for env in Safety-ant-medium-v2 Safety-walker2d-medium-v2 Safety-hopper-medium-v2
+for env in Safety-walker2d-medium-v2 # Safety-ant-medium-v2 Safety-hopper-medium-v2
 do 
     for relabel in identity zero_one constant_0.2 constant_0.8
     do
+        if [ $relabel == "zero_one" ]
+        then
+            options="--bounded True --supervised True --detach_actor True"
+        else
+            options="--bounded False --supervised False --detach_actor False"
+        fi
+        
         python rl_cbf/offline/td3_bc.py \
             --env $env \
             --relabel $relabel \
@@ -19,6 +26,7 @@ do
             --seed $seed \
             --name $env-$relabel-seed=$seed \
     	    --max_timesteps 150000 \
-            --checkpoints_path models
+            --checkpoints_path models \
+            $options
     done
 done
