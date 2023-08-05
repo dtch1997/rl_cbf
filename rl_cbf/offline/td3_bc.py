@@ -369,7 +369,7 @@ class TD3_BC:
 
     def train_supervised(self, batch_supervised: TensorBatch) -> Dict[str, float]:
         log_dict = {}
-        self.total_it += 1
+        # self.total_it += 1
 
         sampled_states, is_unsafe = batch_supervised
         unsafe_states = sampled_states[(is_unsafe == 1.0).squeeze()]
@@ -584,11 +584,15 @@ def train(config: TrainConfig):
     evaluations = []
     for t in range(int(config.max_timesteps)):
         batch = replay_buffer.sample(config.batch_size)
+
+        # Modify the reward
         states, actions, rewards, next_states, dones = batch
         rewards = rewarder.modify_reward(states, rewards)
         batch = [states, actions, rewards, next_states, dones]
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
+
+        # Optionally apply supervised loss
         if trainer.supervised:
             sampled_states = env.sample_states(config.batch_size)
             sample_states = torchify(
@@ -598,6 +602,8 @@ def train(config: TrainConfig):
             batch_supervised = (sample_states, is_unsafe)
             supervised_log_dict = trainer.train_supervised(batch_supervised)
             log_dict.update(supervised_log_dict)
+
+        print(log_dict.keys())
 
         wandb.log(log_dict, step=trainer.total_it)
         # Evaluate episode
