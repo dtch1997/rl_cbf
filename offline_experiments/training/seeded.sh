@@ -5,14 +5,16 @@
 seed=${1:-'0'}
 group_name=${2:-'d4rl_cbf'}
 
+envs=(
+    "Safety-walker2d-random-v2"
+    "Safety-walker2d-expert-v2" 
+    "Safety-walker2d-medium-v2" # Safety-ant-medium-v2 Safety-hopper-medium-v2
+    "Safety-walker2d-mixed-v2"
+)
+
 for seed in 1 2 3 4 5
 do 
-    for env in (
-        "Safety-walker2d-random-v2"
-        "Safety-walker2d-expert-v2" 
-        "Safety-walker2d-medium-v2" # Safety-ant-medium-v2 Safety-hopper-medium-v2
-        "Safety-walker2d-mixed-v2"
-    )
+    for env in ${envs[@]}
     do 
         for relabel in zero_one # constant_0.2 constant_0.8
         do
