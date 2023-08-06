@@ -27,6 +27,10 @@ def train(config: TrainConfig):
     # Add the assumed safety labels to dataset
     # TODO: avoid hardcoding horizon
     dataset = parse_dataset_safety(dataset, H=20)
+    # Preprocess the safety reward
+    dataset["rewards"] = rewarder.modify_reward(
+        dataset["observations"], dataset["rewards"]
+    ).squeeze()
 
     if config.normalize_reward:
         modify_reward(dataset, config.env)
@@ -116,11 +120,6 @@ def train(config: TrainConfig):
     evaluations = []
     for t in range(int(config.max_timesteps)):
         batch = replay_buffer.sample(config.batch_size)
-
-        # Modify the reward
-        states, actions, rewards, next_states, dones, assumed_safety = batch
-        rewards = rewarder.modify_reward(states, rewards)
-        batch = [states, actions, rewards, next_states, dones, assumed_safety]
         batch = [b.to(config.device) for b in batch]
         log_dict = trainer.train(batch)
 
@@ -204,6 +203,9 @@ def train(config: TrainConfig):
                     "cbf/mean_constrained_episode_length": constrained_episode_length.mean(),
                     "cbf/mean_constrained_safety_success": constrained_safety_success.mean(),
                     "cbf/mean_value": cbf_eval_dict["value_mean"],
+                    "cbf/mean_safety_pred_accuracy": cbf_eval_dict[
+                        "safety_pred_accuracy"
+                    ],
                 },
                 step=trainer.total_it,
             )

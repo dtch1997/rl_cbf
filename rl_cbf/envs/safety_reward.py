@@ -20,7 +20,7 @@ class IdentityRewarder(Rewarder):
 class ZeroOneRewarder(Rewarder):
     def modify_reward(self, state, reward):
         """Return 1 if safe, 0 if unsafe."""
-        return 1.0 - self.env.is_unsafe_th(state)
+        return 1.0 - self.env.is_unsafe(state)
 
 
 class ConstantPenaltyRewarder(Rewarder):
@@ -30,4 +30,4 @@ class ConstantPenaltyRewarder(Rewarder):
 
     def modify_reward(self, state, reward):
         """Penalize unsafe states by unsafe_penalty."""
-        return reward - self.penalty * self.env.is_unsafe_th(state)
+        return reward - self.penalty * self.env.is_unsafe(state)
