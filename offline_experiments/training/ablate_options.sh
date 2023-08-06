@@ -5,9 +5,7 @@
 seed=${1:-'0'}
 group_name=${2:-'walker_ablate_options'}
 
-envs=(
-    "Safety-walker2d-mixed-v2"
-)
+env="Safety-walker2d-mixed-v2"
 
 for seed in 1 2 3 4 5
 do 
