@@ -71,12 +71,14 @@ def eval_cbf(
     episode_rewards = []
     episode_lengths = []
     values = []
+    safety_pred_accuracies = []
     for _ in range(n_episodes):
 
         # Reset env
         state, done = env.reset(), False
         episode_reward = 0.0
         episode_length = 0
+        safety_pred = 1
 
         # Initialize episode buffer
         episode_state_buffer = np.zeros((1001, env.observation_space.shape[0]))
@@ -89,25 +91,39 @@ def eval_cbf(
 
             # Apply safety constraint;
             state_th = torch.from_numpy(state).float().to(device).view(1, -1)
-            action_th = torch.from_numpy(action).float().to(device).view(1, -1)
-            q_value_random = model.get_q_value(state_th, action_th)
-            value = model.get_value(state_th)
+            random_action_th = torch.from_numpy(action).float().to(device).view(1, -1)
+            learned_action_th = model.actor(state_th)
+            q_value_random = model.get_q_value(state_th, random_action_th)
+            q_value_learned = model.get_q_value(state_th, learned_action_th)
             # print("q_value_random", q_value_random)
             # print("value", value)
             if q_value_random < safety_threshold:
                 # Unsafe; take action that maximizes Q-value
                 action = model.actor.act(state, device)
+            if q_value_learned < safety_threshold:
+                # We have entered an unsafe state
+                safety_pred = 0
 
             # Step the environment
             state, reward, done, info = env.step(action)
             # env.render()
 
             # Record data
+            values.append(q_value_learned.item())
             episode_reward += reward
             episode_length += 1
             episode_state_buffer[episode_length] = state
             episode_action_buffer[episode_length - 1] = action
-            values.append(value.item())
+
+        if safety_pred == 1 and episode_length < 1000:
+            # Predicted safe, but episode terminated early
+            safety_pred_accuracies.append(0)
+        elif safety_pred == 0 and episode_length == 1000:
+            # Predicted unsafe, but episode did not terminate early
+            safety_pred_accuracies.append(0)
+        else:
+            # Predicted correctly
+            safety_pred_accuracies.append(1)
 
         episode_rewards.append(episode_reward)
         episode_lengths.append(episode_length)
@@ -122,6 +138,7 @@ def eval_cbf(
         "episode_lengths": np.asarray(episode_lengths),
         "episode_safety_successes": np.asarray(episode_safety_successes),
         "value_mean": np.mean(values),
+        "safety_pred_accuracy": np.mean(safety_pred_accuracies),
     }
 
 
