@@ -3,7 +3,7 @@
 # The variable $1 refers to the first argument passed to the script. 
 # If no argument is passed, 'Default Value' will be used.
 seed=${1:-'0'}
-group_name=${2:-'d4rl_cbf'}
+group_name=${2:-'walker_ablate_dset'}
 
 envs=(
     "Safety-walker2d-random-v2"
