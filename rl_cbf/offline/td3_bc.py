@@ -55,6 +55,7 @@ class TrainConfig:
     # RL-CBF
     relabel: str = "identity"  # identity, zero_one, constant_penalty
     # TODO: Implement
+    use_mixed_dataset: bool = False  # If true, mix random-medium-expert dataset
     bounded: bool = False  # If true, use bounded CBF
     safe_supervised: bool = False  # If true, supervise CBF on assumed safe states
     unsafe_supervised: bool = False  # If true, supervise CBF on unsafe set

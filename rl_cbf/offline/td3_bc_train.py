@@ -3,6 +3,23 @@ from td3_bc_eval import eval_cbf, compute_metrics
 from preprocess_dataset import parse_dataset_safety
 
 
+def make_combined_dataset(env_type: str):
+    combined_dataset = {}
+    for env_id in [
+        f"{env_type}-random-v2",
+        f"{env_type}-medium-v2",
+        f"{env_type}-expert-v2",
+    ]:
+        _env = gym.make(env_id)
+        _dataset = d4rl.qlearning_dataset(_env)
+        for key, value in _dataset.items():
+            if key not in combined_dataset:
+                combined_dataset[key] = value
+            else:
+                combined_dataset[key] = np.concatenate((combined_dataset[key], value))
+    return combined_dataset
+
+
 @pyrallis.wrap()
 def train(config: TrainConfig):
     env = gym.make(config.env)
@@ -23,7 +40,15 @@ def train(config: TrainConfig):
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
-    dataset = d4rl.qlearning_dataset(env)
+    if config.use_mixed_dataset:
+        # Use a mixed dataset of random, medium, and expert
+        env_type = config.env.split("-")[1]  # Safety-{env_type}-{etc}
+        combined_dataset = make_combined_dataset(env_type)
+        dataset = combined_dataset
+    else:
+        # Use the specified dataset
+        dataset = d4rl.qlearning_dataset(env)
+
     # Add the assumed safety labels to dataset
     # TODO: avoid hardcoding horizon
     dataset = parse_dataset_safety(dataset, H=20)
