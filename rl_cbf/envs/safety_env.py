@@ -7,6 +7,14 @@ import torch
 class SafetyEnv(abc.ABC, gym.Wrapper):
     """TODO: write safety env interface"""
 
+    def __init__(self, env_id: str):
+        env = gym.make(env_id)
+        super().__init__(env)
+        self.metadata = {
+            "render_modes": ["human", "rgb_array"],
+            "render_fps": int(np.round(1.0 / self.dt)),
+        }
+
     def step(self, action: np.ndarray):
         state, reward, _, info = super().step(action)
         is_unsafe = self.is_unsafe(state).item()
@@ -54,8 +62,7 @@ class SafetyEnv(abc.ABC, gym.Wrapper):
 
 class SafetyWalker2dEnv(SafetyEnv):
     def __init__(self, env_id: str = "Walker2d-v3"):
-        env = gym.make(env_id)
-        super().__init__(env)
+        super().__init__(env_id)
 
     @staticmethod
     def is_unsafe_th(states: torch.Tensor):
@@ -75,8 +82,7 @@ class SafetyWalker2dEnv(SafetyEnv):
 
 class SafetyAntEnv(SafetyEnv):
     def __init__(self, env_id: str = "Ant-v3"):
-        env = gym.make(env_id)
-        super().__init__(env)
+        super().__init__(env_id)
 
     @staticmethod
     def is_unsafe_th(states: torch.Tensor):
@@ -87,8 +93,7 @@ class SafetyAntEnv(SafetyEnv):
 
 class SafetyHopperEnv(SafetyEnv):
     def __init__(self, env_id: str = "Hopper-v3"):
-        env = gym.make(env_id)
-        super().__init__(env)
+        super().__init__(env_id)
 
     @staticmethod
     def is_unsafe_th(states: torch.Tensor):
