@@ -2,14 +2,14 @@
 
 # The variable $1 refers to the first argument passed to the script. 
 # If no argument is passed, 'Default Value' will be used.
-seed=${1:-'0'}
+env_type=${1:-"walker2d"}
 group_name=${2:-'walker_ablate_dset'}
 
 envs=(
-    "Safety-walker2d-random-v2"
-    "Safety-walker2d-expert-v2" 
-    "Safety-walker2d-medium-v2" # Safety-ant-medium-v2 Safety-hopper-medium-v2
-    "Safety-walker2d-mixed-v2"
+    "Safety-${env_type}-random-v2"
+    "Safety-${env_type}-expert-v2" 
+    "Safety-${env_type}-medium-v2" # Safety-ant-medium-v2 Safety-hopper-medium-v2
+    "Safety-${env_type}-mixed-v2"
 )
 
 for seed in 1 2 3 4 5
