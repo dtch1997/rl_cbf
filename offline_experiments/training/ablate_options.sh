@@ -25,7 +25,7 @@ do
                 --buffer_size 3000000 \
                 --use_mixed_dataset True \
                 --bounded $bounded \
-                --unsafe_supervised $supervised
+                --unsafe_supervised $unsafe_supervised
         done
     done
 done
