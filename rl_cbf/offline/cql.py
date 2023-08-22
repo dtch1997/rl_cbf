@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import wandb
 from torch.distributions import Normal, TanhTransform, TransformedDistribution
+from rl_cbf.envs import safety_reward
 
 TensorBatch = List[torch.Tensor]
 
@@ -69,6 +70,8 @@ class TrainConfig:
     project: str = "CORL"
     group: str = "CQL-D4RL"
     name: str = "CQL"
+    # RL-CBF offline
+    relabel: str = "identity"  # identity, zero_one, constant_penalty
 
     def __post_init__(self):
         self.name = f"{self.name}-{self.env}-{str(uuid.uuid4())[:8]}"
@@ -884,6 +887,19 @@ def train(config: TrainConfig):
     env = gym.make(config.env)
     eval_env = gym.make(config.env)
 
+    if config.relabel == "identity":
+        rewarder = safety_reward.IdentityRewarder(env)
+    elif config.relabel == "zero_one":
+        rewarder = safety_reward.ZeroOneRewarder(env)
+    elif config.relabel == "constant_0.2":
+        penalty = 0.2 * (env.ref_max_score - env.ref_min_score) / 1000
+        rewarder = safety_reward.ConstantPenaltyRewarder(env, penalty=penalty)
+    elif config.relabel == "constant_0.8":
+        penalty = 0.8 * (env.ref_max_score - env.ref_min_score) / 1000
+        rewarder = safety_reward.ConstantPenaltyRewarder(env, penalty=penalty)
+    else:
+        raise ValueError(f"Unknown relabeling method: {config.relabel}")
+
     is_env_with_goal = config.env.startswith(ENVS_WITH_GOAL)
 
     max_steps = env._max_episode_steps
@@ -892,6 +908,9 @@ def train(config: TrainConfig):
     action_dim = env.action_space.shape[0]
 
     dataset = d4rl.qlearning_dataset(env)
+    dataset["rewards"] = rewarder.modify_reward(
+        dataset["observations"], dataset["rewards"]
+    ).squeeze()
 
     reward_mod_dict = {}
     if config.normalize_reward:
