@@ -229,6 +229,7 @@ def is_goal_reached(reward: float, info: Dict) -> bool:
 def eval_actor(
     env: gym.Env, actor: nn.Module, device: str, n_episodes: int, seed: int
 ) -> Tuple[np.ndarray, np.ndarray]:
+    # Note: this is evaluation with the original reward
     env.seed(seed)
     actor.eval()
     episode_rewards = []
@@ -1114,6 +1115,16 @@ def train(config: TrainConfig):
                 f"{eval_score:.3f} , D4RL score: {normalized_eval_score:.3f}"
             )
             print("---------------------------------------")
+
+            # Evaluate CBF
+            eval_metrics = eval_cbf(
+                eval_env, 
+                trainer,
+                device=config.device,
+                n_episodes=config.n_episodes,
+                seed=config.seed,
+            )
+
             if config.checkpoints_path:
                 torch.save(
                     trainer.state_dict(),
