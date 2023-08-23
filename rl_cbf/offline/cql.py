@@ -1131,7 +1131,10 @@ def train(config: TrainConfig):
                     os.path.join(config.checkpoints_path, f"checkpoint_{t}.pt"),
                 )
             wandb.log(eval_log, step=trainer.total_it)
-
+    
+    # Save final checkpoint to WandB
+    wandb.save(os.path.join(config.checkpoints_path, f"checkpoint_{t}.pt"), 
+               base_path=config.checkpoints_path)
 
 if __name__ == "__main__":
     train()
