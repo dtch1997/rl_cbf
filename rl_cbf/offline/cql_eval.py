@@ -117,12 +117,11 @@ def eval_cbf(
     critic2.train()
 
     return {
-        "episode_rewards": np.asarray(episode_rewards),
-        "episode_lengths": np.asarray(episode_lengths),
-        "episode_safety_successes": np.asarray(episode_safety_successes),
+        "episode_lengths": np.mean(episode_lengths),
+        "episode_safety_successes": np.mean(episode_safety_successes),
         "value_mean": np.mean(values),
-        "safety_pred_accuracy": np.mean(safety_pred_accuracies),
-        "exploratory_action_counts": np.asarray(exploratory_action_counts),
+        # "safety_pred_accuracy": np.mean(safety_pred_accuracies),
+        "explore_fraction": np.sum(exploratory_action_counts) / np.sum(episode_lengths),
     }
 
 @dataclass
