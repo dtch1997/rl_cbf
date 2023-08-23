@@ -237,7 +237,9 @@ def train(config: TrainConfig):
             # Evaluate CBF
             eval_metrics = eval_cbf(
                 eval_env, 
-                trainer,
+                actor, 
+                critic_1,
+                critic_2,
                 device=config.device,
                 n_episodes=config.n_episodes,
                 seed=config.seed,
